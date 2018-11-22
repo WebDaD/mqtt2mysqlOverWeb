@@ -1,0 +1,24 @@
+{
+  "key":"my-secret-key",
+  "sender": {
+    "broker": {
+      "host": "localhost",
+      "port": 1883,
+      "username": "me",
+      "password": "password"
+    },
+    "topic":"base/data/+",
+    "post": {
+      "host": "localhost",
+    }
+  },
+  "receiver": {
+    "port":3000,
+    "database":{
+      "host"     : "localhost",
+      "user"     : "me",
+      "password" : "secret",
+      "database" : "my_db"
+    }
+  }
+}

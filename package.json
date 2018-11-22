@@ -1,0 +1,29 @@
+{
+  "name": "mqtt2mysqloverweb",
+  "version": "1.0.0",
+  "description": "Two Services, connected via HTTP to save mqtt-Messages to a MySQL-Database",
+  "main": "sender.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WebDaD/mqtt2mysqlOverWeb.git"
+  },
+  "keywords": [
+    "mqtt",
+    "mysql",
+    "http"
+  ],
+  "author": "Dominik Sigmund <dominik.sigmund@webdad.eu>",
+  "license": "Unlicense",
+  "bugs": {
+    "url": "https://github.com/WebDaD/mqtt2mysqlOverWeb/issues"
+  },
+  "homepage": "https://github.com/WebDaD/mqtt2mysqlOverWeb#readme",
+  "dependencies": {
+    "mqtt": "^2.18.8",
+    "mysql": "^2.16.0",
+    "xor-crypt": "^1.1.1"
+  }
+}
