@@ -1,0 +1,15 @@
+@startuml
+
+node "Sender" {
+  [Message Broker] --> [sender.js] : mqtt / 1883
+}
+
+[sender.js] --> (Internet) : http / 3000
+
+
+node "Receiver" {
+  (Internet) --> [receiver.js] : http / 3000
+  [receiver.js] --> [MySQL-DB]: mysql / 3306
+}
+
+@enduml

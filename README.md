@@ -1,17 +1,25 @@
 # mqtt2mysqlOverWeb
 
-TODO: Beschreibung
+2 Dienste, die, per HTTP verbunden, MQTT-Nachrichten in eine MySQL-Datenbank schreiben.
 
-TODO: Drawing (Components)
+![Komponenten](/components.png)
 
 ## Install
 
-TODO: Beschreibung
+1. `git clone https://github.com/WebDaD/mqtt2mysqlOverWeb /opt/`
+2. `cd /opt/mqtt2mysqlOverWeb`
+3. `npm install`
+
+Dann noch in der Datenbank die passenden Tabellen anlegen
 
 ## Config
 
-TODO: Beschreibung
+Zunächst die Datei `config.sample.json` in `config.json` umbenennen.
+
+Dann die Werte anpassen.
 
 ## Control
 
-TODO: Beschreibung
+Zum Starten einfach `node receiver.js` oder `node sender.js`.
+
+Wobei ein ProcessManager wie [pm2](http://pm2.keymetrics.io/) empfohlen wird.

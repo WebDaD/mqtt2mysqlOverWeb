@@ -7,7 +7,6 @@
       "username": "me",
       "password": "password"
     },
-    "topic":"base/data/+",
     "post": {
       "host": "localhost",
     }
@@ -20,5 +19,21 @@
       "password" : "secret",
       "database" : "my_db"
     }
-  }
+  },
+  "topics": [
+    {
+      "topic":"topic/test/test/blubb",
+      "table":"test"
+    }
+  ],
+  "message": [
+    {
+      "field":"timestamp",
+      "type":"DATETIME"
+    },
+    {
+      "field":"title",
+      "type":"VARCHAR(255)"
+    }
+  ]
 }
