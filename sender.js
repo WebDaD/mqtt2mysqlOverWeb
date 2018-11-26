@@ -17,10 +17,10 @@ client.on('message', function (topic, message) {
   let filterpass = true
   for (let index = 0; index < config.filter.length; index++) {
     const filter = config.filter[index]
-    switch(filter.operator) {
+    switch (filter.operator) {
       case 'equals':
         filterpass = filter.values.indexOf(msgJSON[filter.field]) > -1
-      break
+        break
       default: return console.error(filter.operator + ' is not defined.')
     }
   }
@@ -37,7 +37,7 @@ client.on('message', function (topic, message) {
         const element = config.structure.files[index]
         try {
           msgJSON[element.name] = fs.readFileSync(element.folder + msgJSON[element.id] + '.' + element.extension)
-        } catch () {
+        } catch (e) {
           msgJSON[element.name] = ''
         }
       }
