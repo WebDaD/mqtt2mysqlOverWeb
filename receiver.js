@@ -27,17 +27,20 @@ app.post('/', function (req, res) {
   var decrypted = decrypt.update(req.body.data, 'hex', 'utf8')
   decrypted += decrypt.final()
   let data = JSON.parse(decrypted)
+  let assignmentList = ''
+  for (let index = 0; index < config.structure.fields.length; index++) {
+    const field = config.structure.fields[index].field
+    assignmentList += field + '="' + data[field] + '", '
+  }
   for (let index = 0; index < config.structure.files.length; index++) { // Save Files to Disk
     const element = config.structure.files[index]
     let content = data[element.name]
     if (content !== '') {
       fs.writeFileSync(config.receiver.store + element.name + '.' + element.extension, content)
+      assignmentList += element.name + '=1, '
+    } else {
+      assignmentList += element.name + '=0, '
     }
-  }
-  let assignmentList = ''
-  for (let index = 0; index < config.structure.fields.length; index++) {
-    const field = config.structure.fields[index].field
-    assignmentList += field + '="' + data[field] + '", '
   }
   assignmentList = assignmentList.substr(0, assignmentList.length - 2)
   connection.query('INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList, function (error, results, fields) {
@@ -77,8 +80,16 @@ function createTables (callback) {
     const field = config.structure.fields[index]
     fields += field.field + ' ' + field.type + ' NOT NULL, '
   }
-  if (config.structure.indices.length < 1) {
+  if (config.structure.files.length < 1) {
     fields = fields.substr(0, fields.length - 2)
+  }
+  let filefields = ''
+  for (let index = 0; index < config.structure.files.length; index++) {
+    const field = config.structure.files[index]
+    filefields += field.name + ' INT NOT NULL, '
+  }
+  if (config.structure.indices.length < 1) {
+    filefields = filefields.substr(0, filefields.length - 2)
   }
   let indices = ''
   for (let index = 0; index < config.structure.indices.length; index++) {
@@ -99,6 +110,7 @@ function createTables (callback) {
     const table = config.topics[index].table
     let sql = 'CREATE TABLE IF NOT EXISTS ' + table + '( '
     sql += fields
+    sql += filefields
     sql += indices
     sql += primarchs
     sql += ') ENGINE=InnoDB PARTITION BY KEY(' + config.structure.partioning.on + ') PARTITIONS ' + config.structure.partioning.count + ''

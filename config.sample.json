@@ -62,5 +62,15 @@
         "id":"title"
       }
     ]
-  }
+  },
+  "filter": [
+    {
+      "field":"title",
+      "operator":"equals",
+      "values": [
+        "some",
+        "any"
+      ]
+    }
+  ]
 }
