@@ -40,13 +40,10 @@ app.post('/', function (req, res) {
     assignmentList += field + '="' + data[field] + '", '
   }
   assignmentList = assignmentList.substr(0, assignmentList.length - 2)
-  connection.query('INSERT IGNORE INTO ' + data.table + ' SET ' + assignmentList, function (error, results, fields) {
+  connection.query('INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList, function (error, results, fields) {
     if (error) {
       console.error(error)
       res.status(500).end('error')
-    } else {
-      console.log('OK > ' + data.title) // FIXME: remove
-      res.status(200).end('ok')
     }
   })
 })

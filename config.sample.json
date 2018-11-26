@@ -19,7 +19,8 @@
       "password" : "mqtt",
       "database" : "mqtt"
     },
-    "store":"/var/mqtt2mysqlOverWeb/files/"
+    "store":"/var/mqtt2mysqlOverWeb/files/",
+    "ignoreInsertError": true
   },
   "topics": [
     {
