@@ -1,6 +1,7 @@
 const crypto = require('crypto')
 const mysql = require('mysql')
 const express = require('express')
+const fs = require('fs')
 const bodyParser = require('body-parser')
 const app = express()
 const server = require('http').createServer(app)
@@ -26,15 +27,20 @@ app.post('/', function (req, res) {
   var decrypted = decrypt.update(req.body.data, 'hex', 'utf8')
   decrypted += decrypt.final()
   let data = JSON.parse(decrypted)
-  // TODO: there is also a base64 Image in here, save it to file
+  for (let index = 0; index < config.structure.files.length; index++) { // Save Files to Disk
+    const element = config.structure.files[index]
+    let content = data[element.name]
+    if (content !== '') {
+      fs.writeFileSync(config.receiver.store + element.name + '.' + element.extension, content)
+    }
+  }
   let assignmentList = ''
   for (let index = 0; index < config.structure.fields.length; index++) {
     const field = config.structure.fields[index].field
     assignmentList += field + '="' + data[field] + '", '
   }
   assignmentList = assignmentList.substr(0, assignmentList.length - 2)
-  // TODO: do not insert doubles
-  connection.query('INSERT INTO ' + data.table + ' SET ' + assignmentList, function (error, results, fields) {
+  connection.query('INSERT IGNORE INTO ' + data.table + ' SET ' + assignmentList, function (error, results, fields) {
     if (error) {
       console.error(error)
       res.status(500).end('error')
@@ -82,12 +88,22 @@ function createTables (callback) {
     const ind = config.structure.indices[index]
     indices += 'INDEX `' + ind + '_index` (`' + ind + '`), '
   }
-  indices = indices.substr(0, indices.length - 2)
+  if (config.structure.primary.length < 1) {
+    indices = indices.substr(0, indices.length - 2)
+  }
+  let primarchs = 'PRIMARY KEY ('
+  for (let index = 0; index < config.structure.primary.length; index++) {
+    const pri = config.structure.primary[index]
+    primarchs += pri + ', '
+  }
+  primarchs = primarchs.substr(0, primarchs.length - 2)
+  primarchs += ')'
   for (let index = 0; index < config.topics.length; index++) {
     const table = config.topics[index].table
     let sql = 'CREATE TABLE IF NOT EXISTS ' + table + '( '
     sql += fields
     sql += indices
+    sql += primarchs
     sql += ') ENGINE=InnoDB PARTITION BY KEY(' + config.structure.partioning.on + ') PARTITIONS ' + config.structure.partioning.count + ''
     connection.query(sql, function (error, results, fields) {
       if (error) {

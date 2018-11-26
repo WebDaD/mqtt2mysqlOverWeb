@@ -2,38 +2,64 @@
   "key":"my-secret-key",
   "sender": {
     "broker": {
-      "host": "localhost",
+      "host": "server",
       "port": 1883,
-      "username": "me",
-      "password": "password"
+      "username": "user",
+      "password": "pwd"
     },
     "post": {
-      "host": "localhost",
+      "host": "http://localhost"
     }
   },
   "receiver": {
     "port":3000,
     "database":{
       "host"     : "localhost",
-      "user"     : "me",
-      "password" : "secret",
-      "database" : "my_db"
-    }
+      "user"     : "mqtt",
+      "password" : "mqtt",
+      "database" : "mqtt"
+    },
+    "store":"/var/mqtt2mysqlOverWeb/files/"
   },
   "topics": [
     {
-      "topic":"topic/test/test/blubb",
-      "table":"test"
-    }
-  ],
-  "message": [
-    {
-      "field":"timestamp",
-      "type":"DATETIME"
+      "topic":"some/nice/topic",
+      "table":"nice"
     },
     {
-      "field":"title",
-      "type":"VARCHAR(255)"
+      "topic":"some/real/awesome/topic",
+      "table":"real"
     }
-  ]
+  ],
+  "structure": {
+    "fields": [
+      {
+        "field":"timestamp",
+        "type":"DATETIME"
+      },
+      {
+        "field":"title",
+        "type":"VARCHAR(255)"
+      }
+    ],
+    "indices": [
+      "timestamp"
+    ],
+    "primary": [
+      "timestamp",
+      "title"
+    ],
+    "partioning": {
+      "on":"timestamp",
+      "count":10
+    },
+    "files" : [
+      {
+        "name":"image",
+        "extension":"jpg",
+        "folder":"/mnt/capri/images",
+        "id":"title"
+      }
+    ]
+  }
 }

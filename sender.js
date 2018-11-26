@@ -1,6 +1,7 @@
 const mqtt = require('mqtt')
 const crypto = require('crypto')
 const request = require('request')
+const fs = require('fs')
 const config = require('./config.json')
 
 const client = mqtt.connect(config.sender.broker)
@@ -21,7 +22,14 @@ client.on('message', function (topic, message) {
   if (!msgJSON.table) {
     console.error('No Table for Topic: ' + topic)
   } else {
-    // TODO: get image from capri, into base64, into message
+    for (let index = 0; index < config.structure.files.length; index++) {
+      const element = config.structure.files[index]
+      try {
+        msgJSON[element.name] = fs.readFileSync(element.folder + msgJSON[element.id] + '.' + element.extension)
+      } catch () {
+        msgJSON[element.name] = ''
+      }
+    }
     const cipher = crypto.createCipher('aes256', config.key)
     let encrypted = cipher.update(JSON.stringify(msgJSON), 'utf8', 'hex')
     encrypted += cipher.final('hex')
@@ -31,9 +39,7 @@ client.on('message', function (topic, message) {
       } else {
         if (res.statusCode === 500) {
           console.error('Error on Post! ' + JSON.stringify(msgJSON))
-        } else {
-          // Noting, all ok. Dont clutter the logs
-        }
+        } // else all is OK
       }
     })
   }
