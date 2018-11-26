@@ -13,7 +13,13 @@ client.on('connect', function () {
 })
 
 client.on('message', function (topic, message) {
-  let msgJSON = JSON.parse(message.toString())
+  let msgJSON = {}
+  try {
+    msgJSON = JSON.parse(message.toString())
+  } catch (e) {
+    console.error(message.toString())
+    return console.error(e)
+  }
   let filterpass = true
   for (let index = 0; index < config.filter.length; index++) {
     const filter = config.filter[index]
