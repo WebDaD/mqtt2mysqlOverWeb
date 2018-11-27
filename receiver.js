@@ -36,7 +36,7 @@ app.post('/', function (req, res) {
     const element = config.structure.files[index]
     let content = data[element.name]
     if (content !== '') {
-      fs.writeFileSync(config.receiver.store + element.name + '.' + element.extension, content)
+      fs.writeFileSync(config.receiver.store + data[element.id] + '.' + element.extension, content)
       assignmentList += '`' + element.name + '`=1, '
     } else {
       assignmentList += '`' + element.name + '`=0, '
