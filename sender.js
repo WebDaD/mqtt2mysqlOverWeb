@@ -42,7 +42,7 @@ client.on('message', function (topic, message) {
       for (let index = 0; index < config.structure.files.length; index++) {
         const element = config.structure.files[index]
         try {
-          msgJSON[element.name] = fs.readFileSync(element.folder + msgJSON[element.id] + '.' + element.extension)
+          msgJSON[element.name] = fs.readFileSync(element.folder + msgJSON[element.id] + '.' + element.extension).toString('binary')
         } catch (e) {
           msgJSON[element.name] = ''
         }
