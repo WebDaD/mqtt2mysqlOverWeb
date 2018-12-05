@@ -3,9 +3,19 @@ const mysql = require('mysql')
 const express = require('express')
 const fs = require('fs')
 const bodyParser = require('body-parser')
+const childProcess = require('child_process')
 const app = express()
+const queue = require('queue')
+let q = queue()
 const server = require('http').createServer(app)
-const config = require('./config.json')
+let config = {}
+if (process.argv[1]) {
+  config = require(process.argv[1])
+} else {
+  config = require('./config.json')
+}
+
+let cache = require('./lib/jsonfilecache')(config.receiver.cache)
 
 const connection = mysql.createConnection(config.receiver.database)
 try {
@@ -46,10 +56,45 @@ app.post('/', function (req, res) {
   connection.query('INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList, function (error, results, fields) {
     if (error) {
       console.error(error)
+      cache.data.push(data)
+      cache.save()
       res.status(500).end('error')
+    } else {
+      runAfterMath(config.receiver.aftermath, data)
     }
   })
 })
+
+setInterval(function () {
+  for (let index = 0; index < cache.data.length; index++) {
+    const element = cache.data[index]
+    let assignmentList = ''
+    for (let index = 0; index < config.structure.fields.length; index++) {
+      const field = config.structure.fields[index].field
+      assignmentList += '`' + field + '`="' + element[field] + '", '
+    }
+    for (let index = 0; index < config.structure.files.length; index++) { // Save Files to Disk
+      const element = config.structure.files[index]
+      let content = element[element.name]
+      if (content !== '') {
+        fs.writeFileSync(config.receiver.store + element[element.id] + '.' + element.extension, content)
+        assignmentList += '`' + element.name + '`=1, '
+      } else {
+        assignmentList += '`' + element.name + '`=0, '
+      }
+    }
+    assignmentList = assignmentList.substr(0, assignmentList.length - 2)
+    connection.query('INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + element.table + ' SET ' + assignmentList, function (error, results, fields) {
+      if (error) {
+        console.error(error)
+      } else {
+        cache.data.slice(index, 1)
+        cache.save()
+        runAfterMath(config.receiver.aftermath, element)
+      }
+    })
+  }
+}, config.receiver.cache.retry)
 
 /** Handles exitEvents by destroying open connections first
  * @function
@@ -102,7 +147,7 @@ function createTables (callback) {
   let primarchs = 'PRIMARY KEY ('
   for (let index = 0; index < config.structure.primary.length; index++) {
     const pri = config.structure.primary[index]
-    primarchs += '`' +pri + '`, '
+    primarchs += '`' + pri + '`, '
   }
   primarchs = primarchs.substr(0, primarchs.length - 2)
   primarchs += ')'
@@ -126,4 +171,57 @@ function createTables (callback) {
       }
     })
   }
+}
+function runAfterMath (scripts, object) {
+  for (let index = 0; index < config.receiver.aftermath.length; index++) {
+    const script = config.receiver.aftermath[index]
+    q.push(function (cb) {
+      runScript(script, object, function (err, code, object) {
+        if (err) {
+          console.error(err)
+          cb(err, code, object)
+        } else {
+          if (code !== 0) {
+            console.error(script + ': exited with code ' + code)
+            cb(err, code, object)
+          } else {
+            cb(err, code, object)
+          }
+        }
+      })
+    })
+  }
+  q.start(function (err) {
+    if (err) {
+      console.error(err)
+    } else {
+      q.end()
+    }
+  })
+}
+function runScript (scriptPath, object, callback) {
+  // keep track of whether callback has been invoked to prevent multiple invocations
+  var invoked = false
+
+  var process = childProcess.fork(scriptPath)
+
+  process.send({ data: object })
+
+  // listen for errors as they may prevent the exit event from firing
+  process.on('error', function (err) {
+    if (!invoked) {
+      invoked = true
+      callback(err)
+    }
+  })
+
+  // execute the callback once the process has finished running
+  process.on('message', function (data) {
+    if (!invoked) {
+      invoked = true
+      if (data.type === 'done') {
+        callback(null, data.code, data.data)
+      }
+    }
+  })
 }

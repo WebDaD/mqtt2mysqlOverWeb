@@ -8,7 +8,13 @@
       "password": "pwd"
     },
     "post": {
-      "host": "http://localhost"
+      "host": "http://localhost",
+      "port": 3000
+    },
+    "cache": {
+      "file": "/var/mqtt2mysql/sender.json",
+      "saveIntervall":"30000",
+      "retry":"60000"
     }
   },
   "receiver": {
@@ -20,7 +26,15 @@
       "database" : "mqtt"
     },
     "store":"/var/mqtt2mysqlOverWeb/files/",
-    "ignoreInsertError": true
+    "ignoreInsertError": true,
+    "cache": {
+      "file": "/var/mqtt2mysql/receiver.json",
+      "saveIntervall":"30000",
+      "retry":"60000"
+    },
+    "aftermath": [
+      "plugins/nicetables.js"
+    ]
   },
   "topics": [
     {

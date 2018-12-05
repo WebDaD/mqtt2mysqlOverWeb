@@ -22,4 +22,6 @@ Dann die Werte anpassen.
 
 Zum Starten einfach `node receiver.js` oder `node sender.js`.
 
+Alternativ kann auch ein Config-File mitgegeben werden: node sender.js my-config.json
+
 Wobei ein ProcessManager wie [pm2](http://pm2.keymetrics.io/) empfohlen wird.

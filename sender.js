@@ -2,9 +2,16 @@ const mqtt = require('mqtt')
 const crypto = require('crypto')
 const request = require('request')
 const fs = require('fs')
-const config = require('./config.json')
+let config = {}
+if (process.argv[1]) {
+  config = require(process.argv[1])
+} else {
+  config = require('./config.json')
+}
 
 const client = mqtt.connect(config.sender.broker)
+
+let cache = require('./lib/jsonfilecache')(config.sender.cache)
 
 client.on('connect', function () {
   for (let index = 0; index < config.topics.length; index++) {
@@ -50,11 +57,14 @@ client.on('message', function (topic, message) {
       const cipher = crypto.createCipher('aes256', config.key)
       let encrypted = cipher.update(JSON.stringify(msgJSON), 'utf8', 'hex')
       encrypted += cipher.final('hex')
-      request.post(config.sender.post.host + ':' + config.receiver.port, {form: {data: encrypted.toString()}}, function (error, res, body) {
+      request.post(config.sender.post.host + ':' + config.sender.post.port, {form: {data: encrypted.toString()}}, function (error, res, body) {
         if (error) {
+          cache.data.push(msgJSON)
           console.error(error)
         } else {
           if (res.statusCode === 500) {
+            cache.data.push(msgJSON)
+            cache.save()
             console.error('Error on Post! ' + JSON.stringify(msgJSON))
           } // else all is OK
         }
@@ -62,3 +72,23 @@ client.on('message', function (topic, message) {
     }
   }
 })
+setInterval(function () {
+  for (let index = 0; index < cache.data.length; index++) {
+    const element = cache.data[index]
+    const cipher = crypto.createCipher('aes256', config.key)
+    let encrypted = cipher.update(JSON.stringify(element), 'utf8', 'hex')
+    encrypted += cipher.final('hex')
+    request.post(config.sender.post.host + ':' + config.sender.post.port, {form: {data: encrypted.toString()}}, function (error, res, body) {
+      if (error) {
+        console.error(error)
+      } else {
+        if (res.statusCode === 500) {
+          console.error('Error on Post! ' + JSON.stringify(element))
+        } else {
+          cache.data.slice(index, 1)
+          cache.save()
+        }
+      }
+    })
+  }
+}, config.sender.cache.retry)
