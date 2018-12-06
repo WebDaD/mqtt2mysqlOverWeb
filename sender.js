@@ -11,11 +11,9 @@ if (process.argv[2]) {
 
 const client = mqtt.connect(config.sender.broker)
 
-let cache = require('./lib/jsonfilecache')
-if (config.sender.cache) {
-  cache.config(config.sender.cache)
-  cache.load()
-}
+const CACHE = require('./lib/jsonfilecache')
+let cache = CACHE.JsonFileCache(config.sender.cache)
+cache.load()
 
 client.on('connect', function () {
   for (let index = 0; index < config.topics.length; index++) {

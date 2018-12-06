@@ -15,8 +15,8 @@ if (process.argv[2]) {
   config = require('./config.json')
 }
 
-let cache = require('./lib/jsonfilecache')
-cache.config(config.receiver.cache)
+const CACHE = require('./lib/jsonfilecache')
+let cache = CACHE.JsonFileCache(config.receiver.cache)
 cache.load()
 
 const connection = mysql.createConnection(config.receiver.database)
