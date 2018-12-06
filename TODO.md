@@ -1,17 +1,13 @@
-# mqtt2mysqlOverWeb
+# TODO
 
-## TODOS
+* multiple sender
+* multiple receiver
 
-* Workflows in rceiver (reload on every try, have files)
-* Test
+* dispatcher on both sides
 
-## Plugins in workflow
+* config smaller
 
-* js file (single start)
-* input > Object
-* output > exitcode, object
-
-### music-tables
+## Plugin: nicetables
 
 tbl_songs
 id (int, auto-increment) 
@@ -32,7 +28,6 @@ start (datetime)
 length (time)
 type (char (20) -> type: music, cart …)
 comment (char (255) – wofür auch immer 😊)
-
 
 ## Erweiterungen
 

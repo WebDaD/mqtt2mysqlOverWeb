@@ -3,15 +3,19 @@ const crypto = require('crypto')
 const request = require('request')
 const fs = require('fs')
 let config = {}
-if (process.argv[1]) {
-  config = require(process.argv[1])
+if (process.argv[2]) {
+  config = require(process.argv[2])
 } else {
   config = require('./config.json')
 }
 
 const client = mqtt.connect(config.sender.broker)
 
-let cache = require('./lib/jsonfilecache')(config.sender.cache)
+let cache = require('./lib/jsonfilecache')
+if (config.sender.cache) {
+  cache.config(config.sender.cache)
+  cache.load()
+}
 
 client.on('connect', function () {
   for (let index = 0; index < config.topics.length; index++) {

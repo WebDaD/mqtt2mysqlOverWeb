@@ -9,13 +9,15 @@ const queue = require('queue')
 let q = queue()
 const server = require('http').createServer(app)
 let config = {}
-if (process.argv[1]) {
-  config = require(process.argv[1])
+if (process.argv[2]) {
+  config = require(process.argv[2])
 } else {
   config = require('./config.json')
 }
 
-let cache = require('./lib/jsonfilecache')(config.receiver.cache)
+let cache = require('./lib/jsonfilecache')
+cache.config(config.receiver.cache)
+cache.load()
 
 const connection = mysql.createConnection(config.receiver.database)
 try {
@@ -60,7 +62,7 @@ app.post('/', function (req, res) {
       cache.save()
       res.status(500).end('error')
     } else {
-      runAfterMath(config.receiver.aftermath, data)
+      // runAfterMath(config.receiver.aftermath, data)
     }
   })
 })
@@ -90,7 +92,7 @@ setInterval(function () {
       } else {
         cache.data.slice(index, 1)
         cache.save()
-        runAfterMath(config.receiver.aftermath, element)
+        // runAfterMath(config.receiver.aftermath, element)
       }
     })
   }
