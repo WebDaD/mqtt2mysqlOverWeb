@@ -15,6 +15,13 @@
       "file": "/var/mqtt2mysql/sender.json",
       "saveIntervall":"30000",
       "retry":"60000"
+    },
+    "proxy": {
+      "active": true,
+      "user": "",
+      "password": "",
+      "host": "",
+      "port": 8080
     }
   },
   "receiver": {

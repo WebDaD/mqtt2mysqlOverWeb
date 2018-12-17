@@ -10,7 +10,16 @@ if (process.argv[2]) {
   config = require('./config.json')
 }
 
-const client = mqtt.connect(config.sender.broker);
+// Proxy Settings
+var myRequest
+if (config.sender.proxy.active) {
+  var proxyUrl = 'http://' + config.sender.proxy.user + ':' + config.sender.proxy.password + '@' + config.sender.proxy.host + ':' + config.sender.proxy.port
+  myRequest = request.defaults({'proxy': proxyUrl})
+} else {
+  myRequest = request.defaults()
+}
+
+const client = mqtt.connect(config.sender.broker)
 
 const CACHE = require('./lib/jsonfilecache')
 let cache = CACHE.JsonFileCache(config.sender.cache)
@@ -23,13 +32,13 @@ client.on('connect', function () {
 })
 
 client.on('message', function (topic, message) {
-  let _t= new Date();
-  _st = (_t.getHours()<10 ? '0':'') + _t.getHours() + ':' + (_t.getMinutes()<10 ? '0':'') + _t.getMinutes() + ':' + (_t.getSeconds()<10 ? '0':'') + _t.getSeconds();
-  console.log ('-----\n'+_st + ': ' + topic+ ': ');
+  let _t = new Date()
+  var _st = (_t.getHours() < 10 ? '0' : '') + _t.getHours() + ':' + (_t.getMinutes() < 10 ? '0' : '') + _t.getMinutes() + ':' + (_t.getSeconds() < 10 ? '0' : '') + _t.getSeconds()
+  console.log('-----\n' + _st + ': ' + topic + ': ')
   let msgJSON = {}
   try {
-   msgJSON = JSON.parse(message.toString().replace(/\\/g, "")); // sonst Crash bei den maskierten chars
-   console.log (msgJSON.class + ', ' + msgJSON.interpret + (msgJSON.interpret != '' ? ':  ' : '') + msgJSON.title);
+    msgJSON = JSON.parse(message.toString().replace(/\\/g, '')) // sonst Crash bei den maskierten chars
+    console.log(msgJSON.class + ', ' + msgJSON.interpret + (msgJSON.interpret !== '' ? ':  ' : '') + msgJSON.title)
   } catch (e) {
     console.error(message.toString())
     return console.error(e)
@@ -57,13 +66,9 @@ client.on('message', function (topic, message) {
       for (let index = 0; index < config.structure.files.length; index++) {
         const element = config.structure.files[index]
         try {
-          let fn = element.folder + msgJSON[element.id] + '.' + element.extension;
-          console.log ('looking for _'+element.name+'_: '+fn);
-          if (config.element.folder.match(/http[s]:\/\//))
-            msgJSON[element.name] = request(fn).toString('binary');
-          else
-            msgJSON[element.name] = fs.readFileSync(fn, {'encoding':'utf8'}).toString('binary');
-
+          let fn = element.folder + msgJSON[element.id] + '.' + element.extension
+          console.log('looking for _' + element.name + '_: ' + fn)
+          if (config.element.folder.match(/http[s]:\/\//)) { msgJSON[element.name] = request(fn).toString('binary') } else { msgJSON[element.name] = fs.readFileSync(fn, {'encoding': 'utf8'}).toString('binary') }
         } catch (e) {
           msgJSON[element.name] = ''
         }
@@ -71,8 +76,8 @@ client.on('message', function (topic, message) {
       const cipher = crypto.createCipher('aes256', config.key)
       let encrypted = cipher.update(JSON.stringify(msgJSON), 'utf8', 'hex')
       encrypted += cipher.final('hex')
-      request.post(config.sender.post.host+config.sender.post.path, {form: {data: encrypted.toString()}}, function (error, res, body) {
-          if (error) {
+      myRequest.post(config.sender.post.host + config.sender.post.path, {form: {data: encrypted.toString()}}, function (error, res, body) {
+        if (error) {
           cache.data.push(msgJSON)
           console.error(error)
         } else {
@@ -80,9 +85,7 @@ client.on('message', function (topic, message) {
             cache.data.push(msgJSON)
             cache.save()
             console.error('Error on Post! ' + JSON.stringify(msgJSON))
-          } // else all is OK
-          else
-            console.log ('Data sent to '+config.sender.post.host);
+          } else { console.log('Data sent to ' + config.sender.post.host) } // else all is OK
         }
       })
     }
@@ -94,8 +97,8 @@ setInterval(function () {
     const cipher = crypto.createCipher('aes256', config.key)
     let encrypted = cipher.update(JSON.stringify(element), 'utf8', 'hex')
     encrypted += cipher.final('hex')
-    console.log ('about to send via POST (setInterval()) ...');
-    request.post(config.sender.post.host+config.sender.post.path, {form: {data: encrypted.toString()}}, function (error, res, body) {
+    console.log('about to send via POST (setInterval()) ...')
+    request.post(config.sender.post.host + config.sender.post.path, {form: {data: encrypted.toString()}}, function (error, res, body) {
       if (error) {
         console.error(error)
       } else {
