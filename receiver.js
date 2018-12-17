@@ -1,12 +1,14 @@
+#!/usr/bin/env node
+
 const crypto = require('crypto')
 const mysql = require('mysql')
 const express = require('express')
 const fs = require('fs')
 const bodyParser = require('body-parser')
-const childProcess = require('child_process')
+//const childProcess = require('child_process')
 const app = express()
-const queue = require('queue')
-let q = queue()
+//const queue = require('queue')
+//let q = queue()
 const server = require('http').createServer(app)
 let config = {}
 if (process.argv[2]) {
@@ -19,6 +21,10 @@ const CACHE = require('./lib/jsonfilecache')
 let cache = CACHE.JsonFileCache(config.receiver.cache)
 cache.load()
 
+save2DB = require ('./plugins/save2DB');
+
+
+
 const connection = mysql.createConnection(config.receiver.database)
 try {
   connection.connect()
@@ -27,18 +33,29 @@ try {
   process.exit(5)
 }
 
-app.use(bodyParser.urlencoded()) // for parsing formdata
+// Zugriffsrechte checken
+try {
+  fs.accessSync (config.receiver.store, fs.constants.W_OK);
+} catch (e) {
+  console.error (e);
+  process.exit (6);
+}
+
+
+app.use(bodyParser.urlencoded({extended:true})) // for parsing formdata
 
 createTables(function () {
   server.listen(config.receiver.port)
   console.log('receiver running on port ' + config.receiver.port)
 })
 
-app.post('/', function (req, res) {
+
+app.post(config.sender.post.path, function (req, res) {
   let decrypt = crypto.createDecipher('aes256', config.key)
   var decrypted = decrypt.update(req.body.data, 'hex', 'utf8')
   decrypted += decrypt.final()
   let data = JSON.parse(decrypted)
+  console.log ('received: ' + data.interpret + '  |  ' + data.title);
   let assignmentList = ''
   for (let index = 0; index < config.structure.fields.length; index++) {
     const field = config.structure.fields[index].field
@@ -48,7 +65,9 @@ app.post('/', function (req, res) {
     const element = config.structure.files[index]
     let content = data[element.name]
     if (content !== '') {
-      fs.writeFileSync(config.receiver.store + data[element.id] + '.' + element.extension, content)
+      let fn = config.receiver.store + data[element.id] + '.' + element.extension, content;
+      console.log ('Looking for cover: '+fn);
+      fs.writeFileSync(fn);
       assignmentList += '`' + element.name + '`=1, '
     } else {
       assignmentList += '`' + element.name + '`=0, '
@@ -62,7 +81,8 @@ app.post('/', function (req, res) {
       cache.save()
       res.status(500).end('error')
     } else {
-      // runAfterMath(config.receiver.aftermath, data)
+        save2DB.savePlaylist (data);
+//      runAfterMath(config.receiver.aftermath, data)
     }
   })
 })
@@ -92,7 +112,8 @@ setInterval(function () {
       } else {
         cache.data.slice(index, 1)
         cache.save()
-        // runAfterMath(config.receiver.aftermath, element)
+        save2DB.savePlaylist (data);
+//        runAfterMath(config.receiver.aftermath, element)
       }
     })
   }
@@ -105,6 +126,7 @@ setInterval(function () {
 */
 function exitHandler (options, err) {
   console.log('Exiting...')
+  save2DB.stop();
   connection.end()
   process.exit()
 }
@@ -173,7 +195,9 @@ function createTables (callback) {
       }
     })
   }
-}
+} // /createTables()
+
+/*
 function runAfterMath (scripts, object) {
   for (let index = 0; index < config.receiver.aftermath.length; index++) {
     const script = config.receiver.aftermath[index]
@@ -201,6 +225,8 @@ function runAfterMath (scripts, object) {
     }
   })
 }
+
+
 function runScript (scriptPath, object, callback) {
   // keep track of whether callback has been invoked to prevent multiple invocations
   var invoked = false
@@ -227,3 +253,5 @@ function runScript (scriptPath, object, callback) {
     }
   })
 }
+
+*/

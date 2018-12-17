@@ -2,6 +2,7 @@ const mqtt = require('mqtt')
 const crypto = require('crypto')
 const request = require('request')
 const fs = require('fs')
+
 let config = {}
 if (process.argv[2]) {
   config = require(process.argv[2])
@@ -9,7 +10,7 @@ if (process.argv[2]) {
   config = require('./config.json')
 }
 
-const client = mqtt.connect(config.sender.broker)
+const client = mqtt.connect(config.sender.broker);
 
 const CACHE = require('./lib/jsonfilecache')
 let cache = CACHE.JsonFileCache(config.sender.cache)
@@ -22,13 +23,18 @@ client.on('connect', function () {
 })
 
 client.on('message', function (topic, message) {
+  let _t= new Date();
+  _st = (_t.getHours()<10 ? '0':'') + _t.getHours() + ':' + (_t.getMinutes()<10 ? '0':'') + _t.getMinutes() + ':' + (_t.getSeconds()<10 ? '0':'') + _t.getSeconds();
+  console.log ('-----\n'+_st + ': ' + topic+ ': ');
   let msgJSON = {}
   try {
-    msgJSON = JSON.parse(message.toString())
+   msgJSON = JSON.parse(message.toString().replace(/\\/g, "")); // sonst Crash bei den maskierten chars
+   console.log (msgJSON.class + ', ' + msgJSON.interpret + (msgJSON.interpret != '' ? ':  ' : '') + msgJSON.title);
   } catch (e) {
     console.error(message.toString())
     return console.error(e)
   }
+
   let filterpass = true
   for (let index = 0; index < config.filter.length; index++) {
     const filter = config.filter[index]
@@ -51,7 +57,13 @@ client.on('message', function (topic, message) {
       for (let index = 0; index < config.structure.files.length; index++) {
         const element = config.structure.files[index]
         try {
-          msgJSON[element.name] = fs.readFileSync(element.folder + msgJSON[element.id] + '.' + element.extension).toString('binary')
+          let fn = element.folder + msgJSON[element.id] + '.' + element.extension;
+          console.log ('looking for _'+element.name+'_: '+fn);
+          if (config.element.folder.match(/http[s]:\/\//))
+            msgJSON[element.name] = request(fn).toString('binary');
+          else
+            msgJSON[element.name] = fs.readFileSync(fn, {'encoding':'utf8'}).toString('binary');
+
         } catch (e) {
           msgJSON[element.name] = ''
         }
@@ -59,8 +71,8 @@ client.on('message', function (topic, message) {
       const cipher = crypto.createCipher('aes256', config.key)
       let encrypted = cipher.update(JSON.stringify(msgJSON), 'utf8', 'hex')
       encrypted += cipher.final('hex')
-      request.post(config.sender.post.host + ':' + config.sender.post.port, {form: {data: encrypted.toString()}}, function (error, res, body) {
-        if (error) {
+      request.post(config.sender.post.host+config.sender.post.path, {form: {data: encrypted.toString()}}, function (error, res, body) {
+          if (error) {
           cache.data.push(msgJSON)
           console.error(error)
         } else {
@@ -69,6 +81,8 @@ client.on('message', function (topic, message) {
             cache.save()
             console.error('Error on Post! ' + JSON.stringify(msgJSON))
           } // else all is OK
+          else
+            console.log ('Data sent to '+config.sender.post.host);
         }
       })
     }
@@ -80,7 +94,8 @@ setInterval(function () {
     const cipher = crypto.createCipher('aes256', config.key)
     let encrypted = cipher.update(JSON.stringify(element), 'utf8', 'hex')
     encrypted += cipher.final('hex')
-    request.post(config.sender.post.host + ':' + config.sender.post.port, {form: {data: encrypted.toString()}}, function (error, res, body) {
+    console.log ('about to send via POST (setInterval()) ...');
+    request.post(config.sender.post.host+config.sender.post.path, {form: {data: encrypted.toString()}}, function (error, res, body) {
       if (error) {
         console.error(error)
       } else {

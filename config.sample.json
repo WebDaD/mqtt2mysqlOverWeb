@@ -34,6 +34,24 @@
     },
     "aftermath": [
       "plugins/nicetables.js"
+    ],
+    "save2DB.js": {
+      "database": {
+        "host": "localhost",
+        "user": "mqtt",
+        "password": "mqtt",
+        "database": "mqtt"
+      }
+    },
+    "tables": [ 
+      {
+        "name": "tablename",
+        "fields": [
+          {"bez": "fieldbez", "type": "fieldtype", "parms": "fieldparameters"}
+        ],
+        "indices": "index-field",
+        "engine": "DB-Enging"
+      }
     ]
   },
   "topics": [
