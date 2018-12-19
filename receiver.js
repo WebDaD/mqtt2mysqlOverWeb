@@ -5,10 +5,7 @@ const mysql = require('mysql')
 const express = require('express')
 const fs = require('fs')
 const bodyParser = require('body-parser')
-//const childProcess = require('child_process')
 const app = express()
-//const queue = require('queue')
-//let q = queue()
 const server = require('http').createServer(app)
 let config = {}
 if (process.argv[2]) {
@@ -21,7 +18,7 @@ const CACHE = require('./lib/jsonfilecache')
 let cache = CACHE.JsonFileCache(config.receiver.cache)
 cache.load()
 
-save2DB = require ('./plugins/save2DB');
+const save2DB = require ('./plugins/save2DB');
 
 
 
@@ -54,66 +51,94 @@ app.post(config.sender.post.path, function (req, res) {
   let decrypt = crypto.createDecipher('aes256', config.key)
   var decrypted = decrypt.update(req.body.data, 'hex', 'utf8')
   decrypted += decrypt.final()
+
+  dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
-  console.log ('received: ' + data.interpret + '  |  ' + data.title);
+  dumpMsg ('message parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
   let assignmentList = ''
   for (let index = 0; index < config.structure.fields.length; index++) {
     const field = config.structure.fields[index].field
-    assignmentList += '`' + field + '`="' + data[field] + '", '
+    assignmentList += '`' + field + '`="' + data[field].toString().replace (/\"/g, '\\"') + '", '
   }
   for (let index = 0; index < config.structure.files.length; index++) { // Save Files to Disk
     const element = config.structure.files[index]
     let content = data[element.name]
     if (content !== '') {
-      let fn = config.receiver.store + data[element.id] + '.' + element.extension, content;
-      console.log ('Looking for cover: '+fn);
-      fs.writeFileSync(fn);
-      assignmentList += '`' + element.name + '`=1, '
+      // checken, ob das Zielverzeichnis existiert ...
+      let _path = config.receiver.store + element.name;
+      dumpMsg ('Checking Basepath: '+_path);
+      if (!fs.existsSync (_path))
+        fs.mkdirSync (_path, {recursive:true});
+      let fn = _path + '/' + data.musicid + '.' + element.extension;
+      dumpMsg ('Saving file for *'+element.name+'*: '+fn);
+      try {
+        fs.writeFileSync(fn, content);
+        assignmentList += '`' + element.name + '`=1, '
+      } catch(e) {
+        dumpMsg ('Error during writeFilySync(): \n' + e);
+        assignmentList += '`' + element.name +'`=0, ';
+      }
     } else {
       assignmentList += '`' + element.name + '`=0, '
     }
   }
   assignmentList = assignmentList.substr(0, assignmentList.length - 2)
-  connection.query('INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList, function (error, results, fields) {
+  let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
+  connection.query(SQL, function (error, results, fields) {
     if (error) {
+      dumpMsg ('Fehler beim Insert: '+error+'SQL:\n'+SQL);
       console.error(error)
       cache.data.push(data)
       cache.save()
       res.status(500).end('error')
     } else {
         save2DB.savePlaylist (data);
-//      runAfterMath(config.receiver.aftermath, data)
     }
   })
 })
 
+// Warteschlange abarbeiten
 setInterval(function () {
   for (let index = 0; index < cache.data.length; index++) {
-    const element = cache.data[index]
+    const data = cache.data[index]
     let assignmentList = ''
     for (let index = 0; index < config.structure.fields.length; index++) {
       const field = config.structure.fields[index].field
-      assignmentList += '`' + field + '`="' + element[field] + '", '
+      assignmentList += '`' + field + '`="' + data[field].toString().replace (/\"/g, '\\"') + '", '
     }
     for (let index = 0; index < config.structure.files.length; index++) { // Save Files to Disk
       const element = config.structure.files[index]
-      let content = element[element.name]
+      let content = data[element.name]
       if (content !== '') {
-        fs.writeFileSync(config.receiver.store + element[element.id] + '.' + element.extension, content)
-        assignmentList += '`' + element.name + '`=1, '
+        // checken, ob das Zielverzeichnis existiert ... (braucht's eigentlich nicht, weil das ja bereits eine Ebene drüber erschlagen wurde)
+        let _path = config.receiver.store + element.name;
+        dumpMsg ('Checking Basepath: '+_path);
+        if (!fs.existsSync (_path))
+          fs.mkdirSync (_path, {recursive:true});
+        let fn = _path + '/' + data.musicid + '.' + element.extension;
+        dumpMsg ('Retry saving file for *'+element.name+'*: '+fn);
+        try {
+          fs.writeFileSync(fn, content);
+          assignmentList += '`' + element.name + '`=1, ';
+        } catch (e) {
+          dumpMsg ('Still error during writeFilySync(): \n' + e);
+          assignmentList += '`' + element.name +'`=0, ';
+        }
       } else {
         assignmentList += '`' + element.name + '`=0, '
       }
     }
     assignmentList = assignmentList.substr(0, assignmentList.length - 2)
-    connection.query('INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + element.table + ' SET ' + assignmentList, function (error, results, fields) {
+    let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
+    connection.query(SQL, function (error, results, fields) {
       if (error) {
-        console.error(error)
+        dumpMsg ('Fehler beim erneuten Insert: '+error+'SQL:\n'+SQL);
+        console.error(error);
       } else {
-        cache.data.slice(index, 1)
+        // hat geklappt
+        cache.data.shift(); // erstes Element aus dem Cache entfernen
         cache.save()
         save2DB.savePlaylist (data);
-//        runAfterMath(config.receiver.aftermath, element)
       }
     })
   }
@@ -125,7 +150,7 @@ setInterval(function () {
 * @param {object} err - An Error Object
 */
 function exitHandler (options, err) {
-  console.log('Exiting...')
+  console.log('Exiting...\n'+err);
   save2DB.stop();
   connection.end()
   process.exit()
@@ -197,61 +222,11 @@ function createTables (callback) {
   }
 } // /createTables()
 
-/*
-function runAfterMath (scripts, object) {
-  for (let index = 0; index < config.receiver.aftermath.length; index++) {
-    const script = config.receiver.aftermath[index]
-    q.push(function (cb) {
-      runScript(script, object, function (err, code, object) {
-        if (err) {
-          console.error(err)
-          cb(err, code, object)
-        } else {
-          if (code !== 0) {
-            console.error(script + ': exited with code ' + code)
-            cb(err, code, object)
-          } else {
-            cb(err, code, object)
-          }
-        }
-      })
-    })
+
+const dumpMsg = (msg) => {
+  if (config.receiver.debug) {
+    let _t = new Date()
+    var _st = (_t.getHours() < 10 ? '0' : '') + _t.getHours() + ':' + (_t.getMinutes() < 10 ? '0' : '') + _t.getMinutes() + ':' + (_t.getSeconds() < 10 ? '0' : '') + _t.getSeconds()
+    console.log (_st + '  ' + msg);
   }
-  q.start(function (err) {
-    if (err) {
-      console.error(err)
-    } else {
-      q.end()
-    }
-  })
 }
-
-
-function runScript (scriptPath, object, callback) {
-  // keep track of whether callback has been invoked to prevent multiple invocations
-  var invoked = false
-
-  var process = childProcess.fork(scriptPath)
-
-  process.send({ data: object })
-
-  // listen for errors as they may prevent the exit event from firing
-  process.on('error', function (err) {
-    if (!invoked) {
-      invoked = true
-      callback(err)
-    }
-  })
-
-  // execute the callback once the process has finished running
-  process.on('message', function (data) {
-    if (!invoked) {
-      invoked = true
-      if (data.type === 'done') {
-        callback(null, data.code, data.data)
-      }
-    }
-  })
-}
-
-*/

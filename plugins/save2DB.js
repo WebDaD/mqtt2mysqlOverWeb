@@ -10,42 +10,123 @@ try {
   process.exit(5)
 }
 
-module.exports.stop = () => {
-  hDB.end();
-}
 
+/**************************************
+ * 
+ *  Promises 
+ * 
+ */
 
-module.exports.savePlaylist = (data) => {
-  data.timestamp = data.timestamp.match (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/gm);
-  console.log ('cover: '+data.cover+'*****');
-
-
-  data.intent = 'Artist';
-  data.dbQuery = 'select * from `'+dbConf.database+'`.`artists` where artist="'+data.interpret+'"';
-  data.dbInsert = 'insert into `'+dbConf.database+'`.`artists` (artist) values ("'+data.interpret+'")';
-  data.returnValue = 0;
-  _getArtistID (data).then ( (id) => {
-    data['artistID'] = id;
-    _getCoverID (data).then ( (id) => {
-      data['coverID'] = id;
-      _getTitleID (data).then ( (id) => {
-        data['titleID'] = id;
-        // Playlist updaten
-        _getPlaylistID (data).then ( (id) => {
-          console.log (' ----- ');
-        }); 
-      });   
+// ---------------------
+var _getArtistID = (data) => {
+//  dumpMsg ("_getArtistID () für "+data.interpret);
+  let SQL = 'select id from `'+dbConf.database+'`.`artists` where artist="'+data.interpret+'"';
+  return new Promise ((resolve, reject) => {
+    hDB.query (SQL, (err, result, fields) => {
+      if (err) {
+        dumpMsg ('getArtist(): ERROR\n'+err);
+        reject (err);
+      }
+      else {
+        if (result.length > 0) {
+          dumpMsg ('Artist found. Id: '+result[0].id);
+          resolve (result[0].id);
+        }
+        else {
+          SQL = 'insert into `'+dbConf.database+'`.`artists` (artist) values ("'+data.interpret+'")';
+          hDB.query (SQL, (err, result, fields) => {
+            if (err) {
+              dumpMsg ('ERROR during artist-creation\n'+err);
+              reject (err);
+            }
+            else {
+              dumpMsg ('Artist created: '+data.interpret+' ('+result.insertId+')');
+              resolve (result.insertId);
+            }
+          });
+        }
+      }
     });
-    
-  }).catch ((err) => {
-    console.log (err);
-  })
-//  console.log ('\n----\n'+JSON.stringify(data, null, 2));
-};
+
+  });
+};  // /_getArtistID ()
 
 
+// ---------------------
+var _getTitleID = (data) => {
+//  dumpMsg ("_getTitleID () für "+data.title);
+  let SQL = 'select musicID from `'+dbConf.database+'`.`titles` where musicID="'+data.musicid+'"';
+  return new Promise ((resolve, reject) => {
+    hDB.query (SQL, (err, result, fields) => {
+      if (err) {
+        dumpMsg ('ERROR: _getTitle()\n'+err);
+        reject (err);
+      }
+      else {
+        if (result.length > 0) {
+          dumpMsg ('Title found. "'+data.title+'" by '+data.interpret+'   -->  '+result[0].musicID);
+          resolve (result[0].musicID);
+        }
+        else {
+//          console.log ('Vorm Anlegen eines neuen Titels:\ngesucht: '+SQL+'\nresult:\n'+JSON.stringify(result, null, 2)+'\n---\n');
+          SQL = 'insert into `'+dbConf.database+'`.`titles` (musicID, artistID, title, length, coverID) values ("'+data.musicid+'", '+data.artistID+', "'+data.title+'", "'+data.duration+'", '+(data.cover!=="" ? 1 : 0)+')';
+          hDB.query (SQL, (err, result, fields) => {
+            dumpMsg ('title: '+data.title+' not found.'); //\nresult:'+JSON.stringify(result, null, 2));
+            if (err) {
+              dumpMsg ('ERROR during title-creation.\n'+SQL+'\n'+err);
+              reject (err);
+            }
+            else {
+              dumpMsg ('Title created: "'+data.title+'" ('+data.musicid+')');
+              resolve (data.musicid);
+            }
+          });
+        }
 
-let store2DB = (data) => {
+      }
+    });
+
+  });
+};  //  /_getTitleID()
+
+// ---------------------
+var _getPlaylistID = (data) => {
+//  dumpMsg ("_getPlaylistID () für "+data.timestamp+' in '+data.table);  
+  let SQL = 'select start, station from `'+dbConf.database+'`.`playlists` where start="'+data.timestamp+'" and station="'+data.table+'"';
+  return new Promise ((resolve, reject) => {
+    hDB.query (SQL, (err, result, fields) => {
+      if (err) {
+        console.log ('ERROR: _getPlaylistID()\n'+err);
+        reject (err);
+      }
+      else {
+        if (result.length > 0) {
+          dumpMsg ('Found Playlist-Entry for '+data.timestamp+' on station: '+data.table);
+          resolve (result[0].start +' / ' + result[0].station);
+        }
+        else {
+          SQL = 'insert into `'+dbConf.database+'`.`playlists` (musicID, start, duration, class, station) values ("'+data.musicid+'", "'+data.timestamp+'", "'+data.duration+'", "'+data.class+'", "'+data.table+'")';
+          hDB.query (SQL, (err, result, fields) => {
+            //console.log ('Playlist-Eintrag:\n'+SQL);
+            if (err) {
+              dumpMsg ('ERROR during creation of playlist-entry.\n'+err);
+              reject (err);
+            }
+            else {
+              dumpMsg (`Playlist-Entry for ${data.table} at ${data.timestamp} created.`);
+              resolve (true);
+            }
+          });
+        }
+
+      }
+    });
+
+  });
+};  //  /_getPlaylistID()
+
+
+let write2DB = (data) => {
   console.log ('Promise-Constructor called for: '+data.intent);
   return new Promise ( (resolve, reject) => {
     hDB.query (data.dbQuery, (err, result) => {
@@ -74,161 +155,11 @@ let store2DB = (data) => {
 }
 
 
-
-
-
-
-// ---------------------
-var _getArtistID = (data) => {
-//  console.log ("_getArtistID () für "+data.interpret);
-//  console.log (JSON.stringify(data, null, 2));
-  let SQL = 'select id from `'+dbConf.database+'`.`artists` where artist="'+data.interpret+'"';
-  return new Promise ((resolve, reject) => {
-    hDB.query (SQL, (err, result, fields) => {
-      if (err) {
-        console.log ('Fehler: '+err);
-        reject (err);
-      }
-      else {
-        if (result.length > 0) {
-          resolve (result[0].id);
-        }
-        else {
-          SQL = 'insert into `'+dbConf.database+'`.`artists` (artist) values ("'+data.interpret+'")';
-          hDB.query (SQL, (err, result, fields) => {
-            if (err) {
-              console.log ('Fehler beim Anlegen des Künstlers: '+err);
-              reject (err);
-            }
-            else {
-              console.log ('Artist created: '+data.interpret+' ('+result.insertId+')');
-              resolve (result.insertId);
-            }
-          });
-        }
-      }
-    });
-
-  });
-};  // /_getArtistID ()
-
-// ---------------------
-var _getCoverID = (data) => {
-//  console.log ("_getCoverID () für "+data.cover);
-//  console.log (JSON.stringify(data, null, 2));
-  let SQL = 'select musicID from `'+dbConf.database+'`.`cover` where musicID="'+data.musicid+'"';
-  return new Promise ((resolve, reject) => {
-    hDB.query (SQL, (err, result, fields) => {
-      if (err) {
-        console.log ('Fehler: '+err);
-        reject (err);
-      }
-      else {
-        if (result.length > 0) {
-          resolve (result[0].musicID);
-        }
-        else {
-          if (data.cover != "") {
-            SQL = 'insert into `'+dbConf.database+'`.`cover` (musicID, cover) values ("'+data.musicid+'", "'+data.cover+'")';
-            hDB.query (SQL, (err, result, fields) => {
-              if (err) {
-                console.log ('Fehler beim Anlegen des Covers: '+err);
-                reject (err);
-              }
-              else {
-                resolve (result.insertId);
-              }
-            });
-          } // Cover vorhanden
-          else {
-            resolve (0);  // gibt kein Cover
-          } 
-        }
-      }
-    });
-
-  });
-};  // /_getCoverID ()
-
-// ---------------------
-var _getTitleID = (data) => {
-//  console.log ("_getTitleID () für "+data.title);
-//  console.log (JSON.stringify(data, null, 2));
-  let SQL = 'select musicID from `'+dbConf.database+'`.`titles` where musicID="'+data.musicid+'"';
-  return new Promise ((resolve, reject) => {
-    hDB.query (SQL, (err, result, fields) => {
-      if (err) {
-        console.log ('Fehler: '+err);
-        reject (err);
-      }
-      else {
-        if (result.length > 0) {
-          console.log ('titleID für "'+data.title+'" von  '+data.interpret+'   -->  '+result[0].musicID);
-          resolve (result[0].musicID);
-        }
-        else {
-          SQL = 'insert into `'+dbConf.database+'`.`titles` (musicID, artistID, title, length, coverID) values ("'+data.musicid+'", '+data.artistID+', "'+data.title+'", "'+data.duration+'", '+data.coverID+')';
-          hDB.query (SQL, (err, result, fields) => {
-            //console.log ('Title:\n'+SQL);
-            if (err) {
-              console.log ('Fehler beim Anlegen des Titels: \n'+SQL+'\n'+err);
-              reject (err);
-            }
-            else {
-              console.log ('Title created: "'+data.title+'" ('+data.musicid+')');
-              resolve (data.musicid);
-            }
-          });
-        }
-
-      }
-    });
-
-  });
-};  //  /_getTitleID()
-
-// ---------------------
-var _getPlaylistID = (data) => {
-//  console.log ("_getPlaylistID () für "+data.timestamp+' in '+data.table);  
-//  console.log (JSON.stringify(data, null, 2));
-  let SQL = 'select start from `'+dbConf.database+'`.`playlists` where start="'+data.timestamp+'" and station="'+data.table+'"';
-  return new Promise ((resolve, reject) => {
-    hDB.query (SQL, (err, result, fields) => {
-      if (err) {
-        console.log ('Fehler: '+err);
-        reject (err);
-      }
-      else {
-        if (result.length > 0) {
-          resolve (result[0].musicID);
-        }
-        else {
-          SQL = 'insert into `'+dbConf.database+'`.`playlists` (musicID, start, duration, class, station) values ("'+data.musicid+'", "'+data.timestamp+'", "'+data.duration+'", "'+data.class+'", "'+data.table+'")';
-          hDB.query (SQL, (err, result, fields) => {
-            //console.log ('Playlist-Eintrag:\n'+SQL);
-            if (err) {
-              console.log ('Fehler beim Anlegen des Playlist-Eintrags: '+err);
-              reject (err);
-            }
-            else {
-              console.log ('Playlist-Eintrag für '+data.table+' um '+data.timestamp);
-              resolve (result.insertId);
-            }
-          });
-        }
-
-      }
-    });
-
-  });
-};  //  /_getPlaylistID()
-
-
 const queryDB = (SQL) => {
   return new Promise ( (resolve, reject) => {
     hDB.query (SQL, (err, result) => {
       if (err) {
-        console.log ('Fehler beim Erstellen der Tabelle:\n'+SQL+'\n'+err);
+        dumpMsg ('Error during db-request.\nSQL: '+SQL+'\nERROR: '+err);
         reject (err);
       }
       else {
@@ -237,6 +168,15 @@ const queryDB = (SQL) => {
     });
   }); //  /promise
 };
+
+/**************************************
+ * 
+ *  Ende Promises 
+ * 
+ */
+
+
+
 
 const createTables = () => {
   for (var i=0; i<config.receiver["save2DB.js"].tables.length; i++) {
@@ -254,4 +194,40 @@ const createTables = () => {
   } //  /for i=0; i< tables.length
 };  // createTables()
 
+
+const dumpMsg = (msg) => {
+  if (config.receiver.debug) {
+    let _t = new Date()
+    var _st = (_t.getHours() < 10 ? '0' : '') + _t.getHours() + ':' + (_t.getMinutes() < 10 ? '0' : '') + _t.getMinutes() + ':' + (_t.getSeconds() < 10 ? '0' : '') + _t.getSeconds()
+    console.log (_st + '  ' + msg);
+  }
+}
+
+
 createTables();
+
+
+
+module.exports.stop = () => {
+  hDB.end();
+}
+
+module.exports.savePlaylist = (data) => {
+  data.timestamp = data.timestamp.match (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/gm);
+  
+  _getArtistID(data).then ( (id) => {
+    data['artistID'] = id;
+    _getTitleID (data).then ( (id) => {
+      data['titleID'] = id;
+      // Playlist updaten ...
+      _getPlaylistID (data).then ( (id) => {
+        dumpMsg ('returned from _getPlaylist() with result: '+id+'\n-----');
+      }); // Playlist gespeichert
+    }); // Titel angelegt bzw. gefunden
+  }).catch ((err) => {
+    dumpMsg ('Error during save2DB:\n'+err);
+  });
+
+};  //  /savePlaylist()
+
+
