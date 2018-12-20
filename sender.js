@@ -33,7 +33,7 @@ client.on('connect', function () {
 
 client.on('message', function (topic, message) {
   // Message für den Versand aufbereiten
-  dumpMsg ('new message for: '+topic); // +'\n' + message+'\n');
+  dumpMsg ('message received from: '+topic); // +'\n' + message+'\n');
 
   let msgJSON = {}
   // sonst Crash bei den maskierten chars, doppelte Anführungszeichen müssen aber maskiert bleiben
@@ -41,71 +41,90 @@ client.on('message', function (topic, message) {
   strJSON = strJSON.replace (/\\'/g, "'").replace (/\\\"/g, '\"');
   try {
     msgJSON = JSON.parse(strJSON);
-    dumpMsg ('msg parsed!  ==> (Class: ' + msgJSON.class + ', ' + msgJSON.interpret + (msgJSON.interpret !== '' ? ', "' : '') + msgJSON.title+'")');
+    if (msgJSON.class !== undefined)
+      dumpMsg ('message parsed!  ==> (Class: ' + msgJSON.class + ', ' + msgJSON.interpret + (msgJSON.interpret !== '' ? ', "' : '') + msgJSON.title+'")');
+    else 
+      dumpMsg ('message parsed ==> (Tag: '+msgJSON.tag+ ' - "' + msgJSON.value+'")');
   } catch (e) {
     dumpMsg ('ERROR while parsing to JSON\n'+strJSON+'\n Err:'+e+'\n');
     return console.error(e)
   }
 
-  let filterpass = true
-  for (let index = 0; index < config.filter.length; index++) {
-    const filter = config.filter[index]
-    switch (filter.operator) {
-      case 'equals':
-        filterpass = filter.values.indexOf(msgJSON[filter.field]) > -1
-        break
-      default: 
-        dumpMsg ('Fehler mit dem Filter-Operator "'+filter.operator+'"');
-        return console.error(filter.operator + ' is not defined.')
+  // Behandlung abhängig vom Datentyp
+  for (let i=0; i<config.topics.length; i++) {
+    if (topic === config.topics[i].topic)
+      msgJSON.table = config.topics[i].table;
+  }
+
+  let filterpass=true;
+  let dbstructure = null;
+  for (let i=0; i<config.dbstructure.length; i++){
+    // DB-Definition zum topic suchen
+    if (config.dbstructure[i].tables.indexOf (msgJSON.table) > -1) {
+      dbstructure = config.dbstructure[i];      
     }
   }
+
+  if (dbstructure === null) {
+    dumpMsg ('ERROR: No table-definition for topic '+topic+' found.');
+    return console.error ('No table for '+topic);
+  }
+
+  for (let i=0; i<dbstructure.filter.length; i++) {
+    let filter = dbstructure.filter[i];
+    switch (filter.operator) {
+      case 'equals':
+        filterpass = filter.values.indexOf(msgJSON[filter.field]) > -1;
+        break;
+      default:
+        dumMsp ('ERROR: Filter-Operator "'+filter.operator+'" not defined.');
+        return console.error ('ERROR: Filter-Operator "'+filter.operator+'"  not defined.');
+    }
+  }
+
   if (filterpass) {
-    for (let index = 0; index < config.topics.length; index++) {
-      if (topic === config.topics[index].topic) {
-        msgJSON.table = config.topics[index].table
+    // ggf. nach Files suchen ...
+    for (let i=0; i<dbstructure.files.length; i++) {
+      let element = dbstructure.files[i];
+      try {
+        let fn = element.folder + msgJSON[element.id] + '.' + element.extension
+        dumpMsg ('INFO: trying to get *'+element.name+'* for: ' +fn + '('+msgJSON.interpret+', "'+msgJSON.title+'")');
+        if (element.folder.match(/http[s]:\/\//)) { 
+          msgJSON[element.name] = request(fn).toString('binary') 
+        } else { 
+          msgJSON[element.name] = fs.readFileSync(fn, {'encoding': 'utf8'}).toString('binary') 
+        }
+      } catch (e) {
+        msgJSON[element.name] = ''
       }
     }
-    if (!msgJSON.table) {
-      dumpMsg ('ERROR: No table for topic '+ topic);
-    } 
-    else {
-      for (let index = 0; index < config.structure.files.length; index++) {
-        const element = config.structure.files[index]
-        try {
-          let fn = element.folder + msgJSON[element.id] + '.' + element.extension
-          dumpMsg ('INFO: trying to get *'+element.name+'* for: ' +fn + '('+msgJSON.interpret+', "'+msgJSON.title+'")');
-          if (config.element.folder.match(/http[s]:\/\//)) { 
-            msgJSON[element.name] = request(fn).toString('binary') 
-          } else { 
-            msgJSON[element.name] = fs.readFileSync(fn, {'encoding': 'utf8'}).toString('binary') 
-          }
-        } catch (e) {
-          msgJSON[element.name] = ''
-        }
-      }
 
-      const cipher = crypto.createCipher('aes256', config.key)
-      let encrypted = cipher.update(JSON.stringify(msgJSON), 'utf8', 'hex')
-      encrypted += cipher.final('hex');
-      let postTarget = config.sender.post.host + config.sender.post.path;
-      myRequest.post({url: postTarget, form: {data: encrypted.toString()}}, function (error, res, body) {
-        if (error) {
+    // Jetzt versenden
+    const cipher = crypto.createCipher('aes256', config.key)
+    let encrypted = cipher.update(JSON.stringify(msgJSON), 'utf8', 'hex')
+    encrypted += cipher.final('hex');
+    let postTarget = config.sender.post.host + config.sender.post.path;
+    myRequest.post({url: postTarget, form: {data: encrypted.toString()}}, function (error, res, body) {
+      if (error) {
+        cache.data.push(msgJSON);
+        cache.save();
+        dumpMsg ('Error during initial transmit \n'+JSON.stringify(msgJSON, null, 2));
+      } else {
+        if (res.statusCode === 500) {
           cache.data.push(msgJSON);
           cache.save();
-          dumpMsg ('Error during initial transmit \n'+JSON.stringify(msgJSON, null, 2));
-        } else {
-          if (res.statusCode === 500) {
-            cache.data.push(msgJSON);
-            cache.save();
-            dumpMsg ('Error during initial save on '+config.sender.post.host+'\n'+ JSON.stringify(msgJSON, null, 2));
-          } else { 
-            dumpMsg ('SUCCESS: Data sent >>> ' + config.sender.post.host + ' ('+msgJSON.interpret+')'); 
-          } // else all is OK
-        }
-      })  // /myRequest.post()
+          dumpMsg ('Error during initial save on '+config.sender.post.host+'\n'+ JSON.stringify(msgJSON, null, 2));
+        } else { 
+          dumpMsg ('SUCCESS: Data sent >>> ' + config.sender.post.host + ' ('+(msgJSON.interpret!==undefined ? msgJSON.interpret : msgJSON.value)+')'); 
+        } // else all is OK
+      }
+    })  // /myRequest.post()
 
-    } //  / passendes topic
-  } // /if (filterpass)
+  } //  /if (filterpass)
+  else {
+    dumpMsg ('message discarded. ('+msgJSON.class+')');
+  }
+  
 }) // / client.on (message ...)
 
 
@@ -139,6 +158,6 @@ const dumpMsg = (msg) => {
   if (config.sender.debug) {
     let _t = new Date()
     var _st = (_t.getHours() < 10 ? '0' : '') + _t.getHours() + ':' + (_t.getMinutes() < 10 ? '0' : '') + _t.getMinutes() + ':' + (_t.getSeconds() < 10 ? '0' : '') + _t.getSeconds()
-    console.log (_st + '  ' + msg+'\n');
+    console.log (_st + '  ' + msg);
   }
 }
