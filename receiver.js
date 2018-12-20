@@ -93,38 +93,6 @@ app.post(config.sender.post.path, function (req, res) {
     }
   }
 
-  /*
-  let assignmentList = ''
-  for (let index = 0; index < config.structure.fields.length; index++) {
-    const field = config.structure.fields[index].field
-    assignmentList += '`' + field + '`="' + data[field].toString().replace (/\"/g, '\\"') + '", '
-  }
-  for (let index = 0; index < config.structure.files.length; index++) { // Save Files to Disk
-    const element = config.structure.files[index]
-    let content = data[element.name]
-    if (content !== '') {
-      // checken, ob das Zielverzeichnis existiert ...
-      let _path = config.receiver.store + element.name;
-      dumpMsg ('Checking Basepath: '+_path);
-      if (!fs.existsSync (_path))
-        fs.mkdirSync (_path, {recursive:true});
-      let fn = _path + '/' + data.musicid + '.' + element.extension;
-      dumpMsg ('Saving file for *'+element.name+'*: '+fn);
-      try {
-        fs.writeFileSync(fn, content);
-        assignmentList += '`' + element.name + '`=1, '
-      } catch(e) {
-        dumpMsg ('Error during writeFilySync(): \n' + e);
-        assignmentList += '`' + element.name +'`=0, ';
-      }
-    } else {
-      assignmentList += '`' + element.name + '`=0, '
-    }
-  }
-  */
-
-
-
   assignmentList = assignmentList.substr(0, assignmentList.length - 2)
   let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
   connection.query(SQL, function (error, results, fields) {
@@ -272,59 +240,7 @@ function createTables (callback) {
     });
 
   } // für alle topics
-/*
-  let fields = ''
-  for (let index = 0; index < config.structure.fields.length; index++) {
-    const field = config.structure.fields[index]
-    fields += '`' + field.field + '` ' + field.type + ' NOT NULL, '
-  }
-  if (config.structure.files.length < 1) {
-    fields = fields.substr(0, fields.length - 2)
-  }
-  let filefields = ''
-  for (let index = 0; index < config.structure.files.length; index++) {
-    const field = config.structure.files[index]
-    filefields += '`' + field.name + '` INT NOT NULL, '
-  }
-  if (config.structure.indices.length < 1) {
-    filefields = filefields.substr(0, filefields.length - 2)
-  }
-  let indices = ''
-  for (let index = 0; index < config.structure.indices.length; index++) {
-    const ind = config.structure.indices[index]
-    indices += 'INDEX `' + ind + '_index` (`' + ind + '`), '
-  }
-  if (config.structure.primary.length < 1) {
-    indices = indices.substr(0, indices.length - 2)
-  }
-  let primarchs = 'PRIMARY KEY ('
-  for (let index = 0; index < config.structure.primary.length; index++) {
-    const pri = config.structure.primary[index]
-    primarchs += '`' + pri + '`, '
-  }
-  primarchs = primarchs.substr(0, primarchs.length - 2)
-  primarchs += ')'
-  for (let index = 0; index < config.topics.length; index++) {
-    const table = config.topics[index].table
-    let sql = 'CREATE TABLE IF NOT EXISTS ' + table + '( '
-    sql += fields
-    sql += filefields
-    sql += indices
-    sql += primarchs
-    sql += ') ENGINE=InnoDB PARTITION BY KEY(' + config.structure.partioning.on + ') PARTITIONS ' + config.structure.partioning.count + ''
-    connection.query(sql, function (error, results, fields) {
-      if (error) {
-        console.error(error)
-        process.exit(6)
-      } else {
-        count--
-        if (count < 1) {
-          callback()
-        }
-      }
-    })
-  }
-  */
+
 } // /createTables()
 
 
