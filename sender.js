@@ -6,8 +6,10 @@ const fs = require('fs');
 let config = {}
 if (process.argv[2]) {
   config = require(process.argv[2])
+  console.log('Using Config ' + process.argv[2])
 } else {
   config = require('./config.json')
+  console.log('Using Config config.json')
 }
 
 // Proxy Settings
@@ -104,6 +106,12 @@ client.on('message', function (topic, message) {
     let encrypted = cipher.update(JSON.stringify(msgJSON), 'utf8', 'hex')
     encrypted += cipher.final('hex');
     let postTarget = config.sender.post.host + config.sender.post.path;
+    if (msgJSON.class !== undefined) {
+      dumpMsg('Starting Transfer for (Class: ' + msgJSON.class + ', ' + msgJSON.interpret + (msgJSON.interpret !== '' ? ', "' : '') + msgJSON.title+'")')
+    } else {
+      dumpMsg('Starting Transfer for (Tag: '+msgJSON.tag+ ' - "' + msgJSON.value+'")')
+    }
+    
     myRequest.post({url: postTarget, form: {data: encrypted.toString()}}, function (error, res, body) {
       if (error) {
         cache.data.push(msgJSON);
@@ -137,7 +145,7 @@ setInterval(function () {
     encrypted += cipher.final('hex')
     dumpMsg ('retry:  --> "' + element.title + '" (' + element.interpret+') from '+element.timestamp);
     let postTarget = config.sender.post.host + config.sender.post.path;
-    request.post({url: postTarget, form: {data: encrypted.toString()}}, function (error, res, body) {
+    myRequest.post({url: postTarget, form: {data: encrypted.toString()}}, function (error, res, body) {
       if (error) {
         dumpMsg ('Error during transmit: '+error);
       } else {
