@@ -39,7 +39,7 @@ try {
 }
 
 
-app.use(bodyParser.urlencoded({extended:true})) // for parsing formdata
+app.use(bodyParser.urlencoded({extended:true, limit: config.receiver.maxRequestSize})) // for parsing formdata
 
 createTables(function () {
   server.listen(config.receiver.port)
