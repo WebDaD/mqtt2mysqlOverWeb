@@ -4,10 +4,10 @@ const config = require ("../config"),
 dbConf = config.receiver['save2DB.js'].database;
 var hDB = mysql.createConnection(dbConf);
 try {
-  hDB.connect()
+  hDB.connect();
 } catch (e) {
-  console.error(e)
-  process.exit(5)
+  console.error(e);
+  process.exit(5);
 }
 
 

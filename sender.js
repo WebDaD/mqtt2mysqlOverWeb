@@ -94,7 +94,7 @@ client.on('message', function (topic, message) {
         if (element.folder.match(/http[s]:\/\//)) { 
           msgJSON[element.name] = request(fn).toString('binary') 
         } else { 
-          msgJSON[element.name] = fs.readFileSync(fn, {'encoding': 'utf8'}).toString('binary') 
+          msgJSON[element.name] = fs.readFileSync(fn).toString('binary') 
         }
       } catch (e) {
         msgJSON[element.name] = ''

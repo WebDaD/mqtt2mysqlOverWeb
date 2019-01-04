@@ -76,13 +76,14 @@ app.post(config.sender.post.path, function (req, res) {
     const element = dbstructure.files[i];
     if (data[element.name] != '') {
       let _path = config.receiver.store + element.name;
+      let elData = new Buffer.from (data[element.name], 'binary');
       dumpMsg ('Checking Basepath: '+_path);
       if (!fs.existsSync (_path))
         fs.mkdirSync (_path, {recursive: true});
       let fn = _path + '/' + data.musicid + '.' + element.extension;
       dumpMsg ('Saving file for *'+element.name+'*: '+fn);
       try {
-        fs.writeFileSync(fn, data[element.name]);
+        fs.writeFileSync(fn, elData);
         assignmentList += '`' + element.name + '`=1, '
       } catch(e) {
         dumpMsg ('Error during writeFilySync(): \n' + e);
