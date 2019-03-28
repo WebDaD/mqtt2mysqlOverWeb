@@ -114,13 +114,22 @@ app.post(config.sender.post.path, function (req, res) {
 setInterval(function () {
   for (let index = 0; index < cache.data.length; index++) {
     const data = cache.data[index]
+
+    let dbstructure = null;
+    for (let i=0; i<config.dbstructure.length; i++) {
+      if (config.dbstructure[i].tables.indexOf(data.table) > -1)
+        dbstructure = config.dbstructure[i];
+    }
+    if (dbstructure === null)
+      return dumpMsg ('ERROR: No DB-Table-Definition for topic "'+data.table+'"');  
+
     let assignmentList = ''
-    for (let index = 0; index < config.structure.fields.length; index++) {
-      const field = config.structure.fields[index].field
+    for (let index = 0; index < dbstructure.fields.length; index++) {
+      const field = dbstructure.fields[index].field
       assignmentList += '`' + field + '`="' + data[field].toString().replace (/\"/g, '\\"') + '", '
     }
-    for (let index = 0; index < config.structure.files.length; index++) { // Save Files to Disk
-      const element = config.structure.files[index]
+    for (let index = 0; index < dbstructure.files.length; index++) { // Save Files to Disk
+      const element = dbstructure.files[index]
       let content = data[element.name]
       if (content !== '') {
         // checken, ob das Zielverzeichnis existiert ... (braucht's eigentlich nicht, weil das ja bereits eine Ebene drüber erschlagen wurde)
