@@ -20,7 +20,8 @@ cache.load()
 
 const save2DB = require ('./plugins/save2DB');
 
-
+// Socket-Kommunikation
+const socket = require ('socket.io');
 
 const connection = mysql.createConnection(config.receiver.database)
 try {
@@ -42,8 +43,14 @@ try {
 app.use(bodyParser.urlencoded({extended:true, limit: config.receiver.maxRequestSize})) // for parsing formdata
 
 createTables(function () {
-  server.listen(config.receiver.port)
+  var _server =  server.listen(config.receiver.port)
+  const io = socket(_server)
+
   console.log('receiver running on port ' + config.receiver.port)
+  io.on ('connection', (socket) => {
+    dumpMsg('connection established: '+socket.id)
+    io.sockets.emit('SongChanged')
+  })
 })
 
 
@@ -54,10 +61,11 @@ app.post(config.sender.post.path, function (req, res) {
 
   dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
-  if (data.interpret !== undefined)
+  if (data.interpret !== undefined) {
     dumpMsg ('message parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
-  else
+  } else {
     dumpMsg ('message parsed: '+ data.value);
+  }
 
   let dbstructure = null;
   for (let i=0; i<config.dbstructure.length; i++) {
@@ -104,8 +112,11 @@ app.post(config.sender.post.path, function (req, res) {
       cache.save()
       res.status(500).end('error')
     } else {
-        if (data.interpret !== undefined)
+        if (data.interpret !== undefined) {
           save2DB.savePlaylist (data);
+          dumpMsg('Emitting SongChanged');
+          io.sockets.emit ('SongChanged');
+        }
     }
   })
 })
