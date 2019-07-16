@@ -22,6 +22,7 @@ const save2DB = require ('./plugins/save2DB');
 
 // Socket-Kommunikation
 const socket = require ('socket.io');
+var io;
 
 const connection = mysql.createConnection(config.receiver.database)
 try {
@@ -44,7 +45,7 @@ app.use(bodyParser.urlencoded({extended:true, limit: config.receiver.maxRequestS
 
 createTables(function () {
   var _server =  server.listen(config.receiver.port)
-  const io = socket(_server)
+  io = socket(_server)
 
   console.log('receiver running on port ' + config.receiver.port)
   io.on ('connection', (socket) => {
