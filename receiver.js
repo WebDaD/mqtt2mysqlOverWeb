@@ -6,7 +6,7 @@ const express = require('express')
 const fs = require('fs')
 const bodyParser = require('body-parser')
 const app = express()
-const server = require('http').createServer(app)
+const server = require('http').Server(app)
 let config = {}
 if (process.argv[2]) {
   config = require(process.argv[2])
@@ -22,7 +22,7 @@ const save2DB = require ('./plugins/save2DB');
 
 // Socket-Kommunikation
 const socket = require ('socket.io');
-var io;
+var io = socket(server);
 
 const connection = mysql.createConnection(config.receiver.database)
 try {
@@ -45,9 +45,9 @@ app.use(bodyParser.urlencoded({extended:true, limit: config.receiver.maxRequestS
 
 createTables(function () {
   var _server =  server.listen(config.receiver.port)
-  io = socket(_server)
-
   console.log('receiver running on port ' + config.receiver.port)
+  console.log ('Serving clients: '+io.serveClient())
+
   io.on ('connection', (socket) => {
     dumpMsg('connection established: '+socket.id)
     io.sockets.emit('SongChanged')
