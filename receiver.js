@@ -38,6 +38,7 @@ socket.on ('diconnected', () => {
 })
 
 socket.on ('disconnect', (reason) => {
+  console.log ('connection lost! --> '+reason)
   if (reason ==="io server disconnect")
     socket.connect();
 })
