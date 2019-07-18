@@ -79,7 +79,7 @@ app.post(config.sender.post.path, function (req, res) {
   var decrypted = decrypt.update(req.body.data, 'hex', 'utf8')
   decrypted += decrypt.final()
 
-  dumpMsg ('message received:\n'+decrypted);
+  dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
   if (data.interpret !== undefined) {
     dumpMsg ('message parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
@@ -135,7 +135,7 @@ app.post(config.sender.post.path, function (req, res) {
         if (data.interpret !== undefined) {
           save2DB.savePlaylist (data);
           dumpMsg('Emitting message "'+config.receiver.socket.msg+'"');
-          socket.emit (config.receiver.socket.msg, {});
+          socket.emit (config.receiver.socket.msg, {'for': data.table});
         }
     }
   })
