@@ -37,6 +37,11 @@ socket.on ('diconnected', () => {
   console.log ('disconnected: '+socket.disconneted)
 })
 
+socket.on ('disconnect', (reason) => {
+  if (reason ==="io server disconnect")
+    socket.connect();
+})
+
 socket.on (config.receiver.socket.msg, (data) => {
   console.log ('Received Message: '+JSON.stringify (data, null, 2))
 })
@@ -73,7 +78,7 @@ app.post(config.sender.post.path, function (req, res) {
   var decrypted = decrypt.update(req.body.data, 'hex', 'utf8')
   decrypted += decrypt.final()
 
-  dumpMsg ('message received.'); //:\n'+decrypted);
+  dumpMsg ('message received:\n'+decrypted);
   let data = JSON.parse(decrypted)
   if (data.interpret !== undefined) {
     dumpMsg ('message parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
@@ -128,8 +133,8 @@ app.post(config.sender.post.path, function (req, res) {
     } else {
         if (data.interpret !== undefined) {
           save2DB.savePlaylist (data);
-          dumpMsg('Emitting SongChanged');
-          socket.emit ('SongChanged', {});
+          dumpMsg('Emitting message "'+config.receiver.socket.msg+'"');
+          socket.emit (config.receiver.socket.msg, {});
         }
     }
   })
