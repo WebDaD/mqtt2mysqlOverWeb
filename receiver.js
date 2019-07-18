@@ -6,7 +6,7 @@ const express = require('express')
 const fs = require('fs')
 const bodyParser = require('body-parser')
 const app = express()
-const server = require('http').Server(app)
+const server = require('http').createServer(app)
 let config = {}
 if (process.argv[2]) {
   config = require(process.argv[2])
@@ -21,8 +21,25 @@ cache.load()
 const save2DB = require ('./plugins/save2DB');
 
 // Socket-Kommunikation
-const socket = require ('socket.io');
-var io = socket(server);
+console.log ('Creating SocketIO-Connection to '+config.socket.host+' on '+config.socket.path+' waiting for "'+config.socket.msg+'"')
+const io = require ('socket.io-client')
+const socket = io.connect (config.socket.host, {path: config.socket.path, transports: ['websocket']})
+// transports is important. See: https://github.com/socketio/socket.io/issues/1995
+
+socket.on ('connect', () => {
+  console.log ('connection established.')
+})
+socket.on ('connect_error', (err) => {
+  console.log ('Connection-Error: '+JSON.stringify(err, null, 2))
+})
+
+socket.on ('diconnected', () => {
+  console.log ('disconnected: '+socket.disconneted)
+})
+
+socket.on (config.socket.msg, (data) => {
+  console.log ('Received Message: '+JSON.stringify (data, null, 2))
+})
 
 const connection = mysql.createConnection(config.receiver.database)
 try {
@@ -46,12 +63,8 @@ app.use(bodyParser.urlencoded({extended:true, limit: config.receiver.maxRequestS
 createTables(function () {
   var _server =  server.listen(config.receiver.port)
   console.log('receiver running on port ' + config.receiver.port)
-  console.log ('Serving clients: '+io.serveClient())
-
-  io.on ('connection', (socket) => {
-    dumpMsg('connection established: '+socket.id)
-    io.sockets.emit('SongChanged')
-  })
+  
+  socket.emit (config.socket.msg, {})  
 })
 
 
@@ -116,7 +129,7 @@ app.post(config.sender.post.path, function (req, res) {
         if (data.interpret !== undefined) {
           save2DB.savePlaylist (data);
           dumpMsg('Emitting SongChanged');
-          io.sockets.emit ('SongChanged');
+          socketIO.emit ('SongChanged', {});
         }
     }
   })
@@ -184,9 +197,10 @@ setInterval(function () {
 * @param {object} err - An Error Object
 */
 function exitHandler (options, err) {
-  console.log('Exiting...\n'+err);
+  console.log('\nExiting...\n'+err);
   save2DB.stop();
   connection.end()
+  socket.disconnect()
   process.exit()
 }
 // catches ctrl+c event

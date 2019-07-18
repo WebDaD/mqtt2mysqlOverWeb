@@ -28,6 +28,7 @@
     "mysql": "^2.16.0",
     "queue": "^4.5.1",
     "request": "^2.88.0",
-    "socket.io": "^2.2.0"
+    "socket.io": "^2.2.0",
+    "socket.io-client": "^2.2.0"
   }
 }
