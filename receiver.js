@@ -21,9 +21,9 @@ cache.load()
 const save2DB = require ('./plugins/save2DB');
 
 // Socket-Kommunikation
-console.log ('Creating SocketIO-Connection to '+config.socket.host+' on '+config.socket.path+' waiting for "'+config.socket.msg+'"')
+console.log ('Creating SocketIO-Connection to '+config.receiver.socket.host+' on '+config.receiver.socket.path+' waiting for "'+config.receiver.socket.msg+'"')
 const io = require ('socket.io-client')
-const socket = io.connect (config.socket.host, {path: config.socket.path, transports: ['websocket']})
+const socket = io.connect (config.receiver.socket.host, {path: config.receiver.socket.path, transports: ['websocket']})
 // transports is important. See: https://github.com/socketio/socket.io/issues/1995
 
 socket.on ('connect', () => {
@@ -37,7 +37,7 @@ socket.on ('diconnected', () => {
   console.log ('disconnected: '+socket.disconneted)
 })
 
-socket.on (config.socket.msg, (data) => {
+socket.on (config.receiver.socket.msg, (data) => {
   console.log ('Received Message: '+JSON.stringify (data, null, 2))
 })
 
@@ -64,7 +64,7 @@ createTables(function () {
   var _server =  server.listen(config.receiver.port)
   console.log('receiver running on port ' + config.receiver.port)
   
-  socket.emit (config.socket.msg, {})  
+  socket.emit (config.receiver.socket.msg, {})  
 })
 
 
@@ -129,7 +129,7 @@ app.post(config.sender.post.path, function (req, res) {
         if (data.interpret !== undefined) {
           save2DB.savePlaylist (data);
           dumpMsg('Emitting SongChanged');
-          socketIO.emit ('SongChanged', {});
+          socket.emit ('SongChanged', {});
         }
     }
   })
