@@ -134,7 +134,7 @@ app.post(config.sender.post.path, function (req, res) {
     } else {
         if (data.interpret !== undefined) {
           save2DB.savePlaylist (data);
-          dumpMsg('Emitting message "'+config.receiver.socket.msg+'"');
+          dumpMsg('Emitting message "'+config.receiver.socket.msg+'" for "'+data.table+'"');
           socket.emit (config.receiver.socket.msg, {'for': data.table});
         }
     }
