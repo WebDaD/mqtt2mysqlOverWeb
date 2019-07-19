@@ -30,10 +30,10 @@ socket.on ('connect', () => {
   console.log ('connection established.')
 })
 
-setInterval( () => {
-  console.log ('Sending message ...')
-  socket.emit (config.receiver.socket.msg, {for: 'BAYERN3'})
-}, 10000)
+// setInterval( () => {
+//   console.log ('Sending message ...')
+//   socket.emit (config.receiver.socket.msg, {for: 'BAYERN3'})
+// }, 10000)
   
 
 socket.on ('connect_error', (err) => {
