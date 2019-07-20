@@ -222,6 +222,8 @@ module.exports.savePlaylist = (data) => {
       // Playlist updaten ...
       _getPlaylistID (data).then ( (id) => {
         dumpMsg ('returned from _getPlaylist() with result: '+id+'\n-----');
+        dumpMsg('Emitting message "'+config.receiver.socket.msg+'" for "'+data.table+'"');
+        socket.emit (config.receiver.socket.msg, {'for': data.table});
       }); // Playlist gespeichert
     }); // Titel angelegt bzw. gefunden
   }).catch ((err) => {
