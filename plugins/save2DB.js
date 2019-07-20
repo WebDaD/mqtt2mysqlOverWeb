@@ -10,6 +10,38 @@ try {
   process.exit(5);
 }
 
+// Socket-Kommunikation
+console.log ('Creating SocketIO-Connection to '+config.receiver.socket.host+' on '+config.receiver.socket.path+' waiting for "'+config.receiver.socket.msg+'"')
+const io = require ('socket.io-client')
+const socket = io.connect (config.receiver.socket.host, {path: config.receiver.socket.path, transports: ['websocket'], rejectUnauthorized: false})
+// transports is important. See: https://github.com/socketio/socket.io/issues/1995
+
+socket.on ('connect', () => {
+  console.log ('connection established.')
+})
+
+// setInterval( () => {
+//   console.log ('Sending message ...')
+//   socket.emit (config.receiver.socket.msg, {for: 'BAYERN3'})
+// }, 10000)
+  
+
+socket.on ('connect_error', (err) => {
+  console.log ('Connection-Error: '+JSON.stringify(err, null, 2))
+})
+
+socket.on ('diconnected', () => {
+  console.log ('disconnected: '+socket.disconneted)
+})
+
+// socket.on (config.receiver.socket.msg, (data) => {
+//   console.log ('Received "'+config.receiver.socket.msg+'"-message from server.\nData: '+JSON.stringify (data, null, 2))
+// })
+
+
+
+
+
 
 /**************************************
  * 
