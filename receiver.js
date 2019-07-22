@@ -20,6 +20,20 @@ cache.load()
 
 const save2DB = require ('./plugins/save2DB');
 
+const io = require ('socket.io')(server)
+io.on ('connection', (socket) => {
+  console.log ('client-connected: '+socket.id)
+  socket.emit (config.receiver.socket.msg, {'data': 'you are connected to the server.'+config.receiver.socket.host+' on '+config.receiver.socket.path})
+})
+
+
+/*
+var msgCount = 0;
+setInterval( () => {
+  console.log ('#'+(msgCount++)+': emitting message ...');
+  io.sockets.emit (config.receiver.socket.msg, {'for':'just a test'})
+}, 5000)
+*/
 
 const connection = mysql.createConnection(config.receiver.database)
 try {
@@ -105,7 +119,7 @@ app.post(config.sender.post.path, function (req, res) {
       res.status(500).end('error')
     } else {
         if (data.interpret !== undefined) {
-          save2DB.savePlaylist (data);
+          save2DB.savePlaylist (data, io);
         }
     }
   })
@@ -176,7 +190,6 @@ function exitHandler (options, err) {
   console.log('\nExiting...\n'+err);
   save2DB.stop();
   connection.end()
-  socket.disconnect()
   process.exit()
 }
 // catches ctrl+c event

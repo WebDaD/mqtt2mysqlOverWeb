@@ -10,6 +10,7 @@ try {
   process.exit(5);
 }
 
+/*
 // Socket-Kommunikation
 console.log ('Creating SocketIO-Connection to '+config.receiver.socket.host+' on '+config.receiver.socket.path+' waiting for "'+config.receiver.socket.msg+'"')
 const io = require ('socket.io-client')
@@ -37,9 +38,7 @@ socket.on ('diconnected', () => {
 // socket.on (config.receiver.socket.msg, (data) => {
 //   console.log ('Received "'+config.receiver.socket.msg+'"-message from server.\nData: '+JSON.stringify (data, null, 2))
 // })
-
-
-
+*/
 
 
 
@@ -244,7 +243,7 @@ module.exports.stop = () => {
   hDB.end();
 }
 
-module.exports.savePlaylist = (data) => {
+module.exports.savePlaylist = (data, socket) => {
   data.timestamp = data.timestamp.match (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/gm);
   
   _getArtistID(data).then ( (id) => {
@@ -254,8 +253,8 @@ module.exports.savePlaylist = (data) => {
       // Playlist updaten ...
       _getPlaylistID (data).then ( (id) => {
         dumpMsg ('returned from _getPlaylist() with result: '+id+'');
-        dumpMsg('Emitting message "'+config.receiver.socket.msg+'" for "'+data.table+'"\n-----');
-        socket.emit (config.receiver.socket.msg, {'for': data.table});
+        dumpMsg('Emitting message "'+config.receiver.socket.msg+'" to clients for "'+data.table+'"\n-----');
+        socket.sockets.emit (config.receiver.socket.msg, {'for': data.table});
       }); // Playlist gespeichert
     }); // Titel angelegt bzw. gefunden
   }).catch ((err) => {
