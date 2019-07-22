@@ -243,7 +243,7 @@ module.exports.stop = () => {
   hDB.end();
 }
 
-module.exports.savePlaylist = (data, socket) => {
+module.exports.savePlaylist = (data, socket=undefined) => {
   data.timestamp = data.timestamp.match (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/gm);
   
   _getArtistID(data).then ( (id) => {
@@ -254,7 +254,8 @@ module.exports.savePlaylist = (data, socket) => {
       _getPlaylistID (data).then ( (id) => {
         dumpMsg ('returned from _getPlaylist() with result: '+id+'');
         dumpMsg('Emitting message "'+config.receiver.socket.msg+'" to clients for "'+data.table+'"\n-----');
-        socket.sockets.emit (config.receiver.socket.msg, {'for': data.table});
+        if (socket !== undefined)
+          socket.sockets.emit (config.receiver.socket.msg, {'for': data.table});
       }); // Playlist gespeichert
     }); // Titel angelegt bzw. gefunden
   }).catch ((err) => {
