@@ -252,10 +252,11 @@ module.exports.savePlaylist = (data, socket=undefined) => {
       data['titleID'] = id;
       // Playlist updaten ...
       _getPlaylistID (data).then ( (id) => {
-        dumpMsg ('returned from _getPlaylist() with result: '+id+'');
-        dumpMsg('Emitting message "'+config.receiver.socket.msg+'" to clients for "'+data.table+'"\n-----');
-        if (socket !== undefined)
+        dumpMsg ('returned from _getPlaylist() with result: '+id+(socket===undefined?'"\n-----':'');
+        if (socket !== undefined) {
+          dumpMsg('Emitting message "'+config.receiver.socket.msg+'" to clients for "'+data.table+'"\n-----');
           socket.sockets.emit (config.receiver.socket.msg, {'for': data.table});
+        }
       }); // Playlist gespeichert
     }); // Titel angelegt bzw. gefunden
   }).catch ((err) => {
