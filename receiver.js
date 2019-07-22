@@ -22,7 +22,7 @@ const save2DB = require ('./plugins/save2DB');
 
 const io = require ('socket.io')(server)
 io.on ('connection', (socket) => {
-  console.log ('client-connected: '+socket.id)
+  console.log ('client-connected: '+socket.id+' / total active connections: '+io.engine.clientsCount)
   socket.emit (config.receiver.socket.msg, {'data': 'you are connected to the server.'+config.receiver.socket.host+' on '+config.receiver.socket.path})
 })
 
