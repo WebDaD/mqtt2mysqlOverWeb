@@ -148,7 +148,23 @@ var _getPlaylistID = (data) => {
               let deltaTime = (Date.now() - Date.parse(data.timestamp)) / 1000;
               dumpMsg (`Playlist-Entry for ${data.table} at ${data.timestamp} created. Delay: ${deltaTime} secs.`);
               if (deltaTime > parseInt(config.receiver["save2DB.js"].alarms.timeThreshold)) {
-                spawn("mail",  [`-s "mqtt2MySQL: Time Threshold exceeded: ${deltaTime} seconds"`,  `${config.receiver["save2DB.js"].alarms.emailAddress}`,  `< /dev/null`]);
+                dumpMsg (`Sending alarm-mail to ${config.receiver["save2DB.js"].alarms.emailAddress}`)
+                try {
+                  let sendmail = spawn(
+                    "mail", 
+                    [
+                      "-s",
+                      "mqtt2MySQL: Message delayed: "+deltaTime+" seconds",
+                      config.receiver["save2DB.js"].alarms.emailAddress
+                    ]
+                  );
+                  sendmail.stdin.write (
+                    `Playlist-Entry for ${data.table}, started at ${data.timestamp}, created delayed by ${deltaTime} secs.`
+                  );
+                  sendmail.stdin.end();
+                } catch(err) {
+                  dumpMsg ('Error while sending alarm-mail.')
+                }
               }
               resolve (true); 
             }

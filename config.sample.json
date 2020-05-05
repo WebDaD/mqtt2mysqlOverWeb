@@ -43,6 +43,10 @@
       "plugins/nicetables.js"
     ],
     "save2DB.js": {
+      "alarms": {
+        "timeThreshold": "time-in-seconds",
+        "emailAddress": "adress to send info to"
+      },
       "database": {
         "host": "localhost",
         "user": "mqtt",

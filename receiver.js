@@ -74,7 +74,7 @@ app.post(config.sender.post.path, function (req, res) {
   }
 
   let dbstructure = null;
-  for (let i=0; i<config.dbstructure.length; i++) {
+  for (let i=0; i<config.dbstructure.length; i++) { 
     if (config.dbstructure[i].tables.indexOf(data.table) > -1)
       dbstructure = config.dbstructure[i];
   }
