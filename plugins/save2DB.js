@@ -145,7 +145,7 @@ var _getPlaylistID = (data) => {
             }
             else {
               let deltaTime = (Date.now() - Date.parse(data.timestamp)) / 1000;
-              dumpMsg (`Playlist-Entry for ${data.table} at ${data.timestamp} created. Delay: ${deltaTime} seconds.`);
+              dumpMsg (`Playlist-Entry for ${data.table} at ${data.timestamp} created. Delay: ${deltaTime} secs.`);
               resolve (true);
             }
           });
