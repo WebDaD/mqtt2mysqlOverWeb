@@ -159,7 +159,7 @@ var _getPlaylistID = (data) => {
                     ]
                   );
                   sendmail.stdin.write (
-                    `Playlist-Entry for ${data.table}, started at ${data.timestamp}, created delayed by ${deltaTime} secs.`
+                    `Playlist Entry: "${data.title}" by ${data.tinterpret}\nfor ${data.table}, started at ${data.timestamp}, Entry delayed by ${deltaTime} secs.`
                   );
                   sendmail.stdin.end();
                 } catch(err) {
