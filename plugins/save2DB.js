@@ -1,5 +1,6 @@
 const config = require ("../config"),
-  mysql = require ("../node_modules/mysql");
+  mysql = require ("../node_modules/mysql"),
+  {spawn} = require("child_process");
 
 dbConf = config.receiver['save2DB.js'].database;
 var hDB = mysql.createConnection(dbConf);
@@ -146,7 +147,10 @@ var _getPlaylistID = (data) => {
             else {
               let deltaTime = (Date.now() - Date.parse(data.timestamp)) / 1000;
               dumpMsg (`Playlist-Entry for ${data.table} at ${data.timestamp} created. Delay: ${deltaTime} secs.`);
-              resolve (true);
+              if (deltaTime > parseInt(config.receiver["save2DB.js"].alarms.timeThreshold)) {
+                spawn("mail",  [`-s "mqtt2MySQL: Time Threshold exceeded: ${deltaTime} seconds"`,  `${config.receiver["save2DB.js"].alarms.emailAddress}`,  `< /dev/null`]);
+              }
+              resolve (true); 
             }
           });
         }
