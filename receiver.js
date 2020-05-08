@@ -43,6 +43,10 @@ try {
   process.exit(5)
 }
 
+const {spawn} = require('child_process')
+var watchdogs = [] // array of watchdog-objects
+
+
 // Zugriffsrechte checken
 try {
   fs.accessSync (config.receiver.store, fs.constants.W_OK);
@@ -56,6 +60,10 @@ app.use(bodyParser.urlencoded({extended:true, limit: config.receiver.maxRequestS
 
 createTables(function () {
   var _server =  server.listen(config.receiver.port)
+  // setting up watchdog(s) ...
+  for (watchdog of watchdogs) {
+    watchdog.id = setTimeout(() => {watchdogFired (watchdog)}, parseInt(watchdog.prms.time)*60*1000)
+  }
   console.log('receiver running on port ' + config.receiver.port)
 })
 
@@ -67,6 +75,14 @@ app.post(config.sender.post.path, function (req, res) {
 
   dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
+
+  for (watchdog of watchdogs) {
+    if (watchdog.for == data.table) {
+      clearTimeout(watchdog.id)
+      watchdog.id = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) *60*1000)
+    }
+  }
+
   if (data.interpret !== undefined) {
     dumpMsg ('message parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
   } else {
@@ -75,7 +91,7 @@ app.post(config.sender.post.path, function (req, res) {
 
   let dbstructure = null;
   for (let i=0; i<config.dbstructure.length; i++) { 
-    if (config.dbstructure[i].tables.indexOf(data.table) > -1)
+    if (config.dbstructure[i].tables.indexOf(data.table) > -1) 
       dbstructure = config.dbstructure[i];
   }
   if (dbstructure === null)
@@ -209,6 +225,11 @@ function createTables (callback) {
   let dbstructure = null;
 
   for (let i=0; i<config.topics.length; i++) {
+    // ggf. watchdog erzeugen
+    if (config.topics[i].watchdog !== undefined) {
+      watchdogs.push({for: config.topics[i].table, prms: config.topics[i].watchdog})
+    }
+
     // DB-Definition raussuchen
     for (let j=0; j<config.dbstructure.length; j++) {
       if (config.dbstructure[j].tables.indexOf(config.topics[i].table) > -1)
@@ -275,4 +296,31 @@ const dumpMsg = (msg) => {
     var _st = (_t.getHours() < 10 ? '0' : '') + _t.getHours() + ':' + (_t.getMinutes() < 10 ? '0' : '') + _t.getMinutes() + ':' + (_t.getSeconds() < 10 ? '0' : '') + _t.getSeconds()
     console.log (_st + '  ' + msg);
   }
+}
+
+const watchdogFired = (d) => {
+  for (adr of d.prms.adr) {
+    try {
+      let sendmail = spawn(
+        "mail", 
+        [
+          "-s",
+          "rcv-watchdog: No "+d.for+"-Message for : "+d.prms.time+" minutes.",
+          adr
+        ]
+      );
+      sendmail.stdin.write (d.prms.msg);
+      sendmail.stdin.end();
+      dumpMsg ('Watchdog-Mail for topic '+d.for+' sent to '+adr)
+    } catch(err) {
+      dumpMsg ('Error while sending watchdog-mail.')
+    }
+  }   //  /for adr of d.prms.adr
+
+  // re-arm watchdog
+  let _idx = watchdogs.findIndex( (el) => {return (el.for==d.for)})
+  if (_idx > -1) {
+    watchdogs[_idx].id = setTimeout( () => {watchdogFired(watchdogs[_idx])}, parseInt(watchdogs[_idx].prms.time) * 60*1000)
+  }
+
 }
