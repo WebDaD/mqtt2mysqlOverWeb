@@ -321,6 +321,7 @@ const watchdogFired = (d) => {
   // re-arm watchdog
   let _idx = watchdogs.findIndex( (el) => {return (el.for==d.for)})
   if (_idx > -1) {
+    clearTimeout(watchdogs[_idx].id)
     watchdogs[_idx].id = setTimeout( () => {watchdogFired(watchdogs[_idx])}, parseInt(watchdogs[_idx].prms.time) * 60*1000)
   }
 
