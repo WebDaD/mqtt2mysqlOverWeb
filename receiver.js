@@ -62,7 +62,7 @@ createTables(function () {
   var _server =  server.listen(config.receiver.port)
   // setting up watchdog(s) ...
   for (watchdog of watchdogs) {
-    watchdog.id = setTimeout(() => {watchdogFired (watchdog)}, parseInt(watchdog.prms.time)*60*1000)
+    watchdog.timerObj = setTimeout(() => {watchdogFired (watchdog)}, parseInt(watchdog.prms.time)*60*1000)
     dumpMsg('watchdog for '+watchdog.for+' armed. ('+watchdog.prms.time+' minutes.)')
   }
   dumpMsg('startup: receiver running on port ' + config.receiver.port)
@@ -84,9 +84,9 @@ app.post(config.sender.post.path, function (req, res) {
 
   for (watchdog of watchdogs) {
     if (watchdog.for == data.table) {
-      clearTimeout(watchdog.id)
-      watchdog.id = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) *60*1000)
-      dumpMsg('watchdog for '+watchdog.for+' ('+watchdog.id+') reset.')
+      clearTimeout(watchdog.timerObj)
+      watchdog.timerObj = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) *60*1000)
+      dumpMsg('watchdog for '+watchdog.for+' reset.')
     }
   }
 
@@ -321,8 +321,9 @@ const watchdogFired = (d) => {
   // re-arm watchdog
   let _idx = watchdogs.findIndex( (el) => {return (el.for==d.for)})
   if (_idx > -1) {
-    clearTimeout(watchdogs[_idx].id)
-    watchdogs[_idx].id = setTimeout( () => {watchdogFired(watchdogs[_idx])}, parseInt(watchdogs[_idx].prms.time) * 60*1000)
+    let watchdog = watchdogs[_idx]
+    clearTimeout(watchdog.timerObj)
+    watchdog.timerObj = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) * 60*1000)
   }
 
 }
