@@ -76,6 +76,7 @@ app.post(config.sender.post.path, function (req, res) {
 
   dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
+  dumpMsg('data: '+JSON.stringify(data, null, 2))
   if (data.interpret !== undefined) {
     dumpMsg ('message parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
   } else {
