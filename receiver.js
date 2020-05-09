@@ -63,8 +63,9 @@ createTables(function () {
   // setting up watchdog(s) ...
   for (watchdog of watchdogs) {
     watchdog.id = setTimeout(() => {watchdogFired (watchdog)}, parseInt(watchdog.prms.time)*60*1000)
+    dumpMsg('watchdog for '+watchdog.for+' armed. ('+watchdog.prms.time+' minutes.)')
   }
-  console.log('receiver running on port ' + config.receiver.port)
+  dumpMsg('startup: receiver running on port ' + config.receiver.port)
 })
 
 
@@ -82,13 +83,11 @@ app.post(config.sender.post.path, function (req, res) {
   }
 
   for (watchdog of watchdogs) {
-    let _status = ' => no action'
     if (watchdog.for == data.table) {
       clearTimeout(watchdog.id)
       watchdog.id = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) *60*1000)
-      _status = ' => reset.'
+      dumpMsg('watchdog for '+watchdog.for+' ('+watchdog.id+') reset.')
     }
-    dumpMsg('watchdog for '+watchdog.for+ _status)
   }
 
   let dbstructure = null;
