@@ -206,8 +206,11 @@ setInterval(function () {
 function exitHandler (options, err) {
   console.log('\nExiting...\n'+err);
   save2DB.stop();
-  connection.end()
-  process.exit()
+  connection.end();
+  for (watchdog of watchdogs) {
+    clearTimeout(watchdog.timerObj);
+  }
+  process.exit();
 }
 // catches ctrl+c event
 process.on('SIGINT', exitHandler)
