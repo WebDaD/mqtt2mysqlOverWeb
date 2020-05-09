@@ -76,9 +76,13 @@ app.post(config.sender.post.path, function (req, res) {
 
   dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
-  dumpMsg('data: '+JSON.stringify(data, null, 2))
   if (data.interpret !== undefined) {
     dumpMsg ('message parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
+    if (data.title == "" || data.interpret == "") {
+      dumpMsg ('possible data-error: '+JSON.stringify(data, null, 2))
+      data.table = ""
+      dumpMsg (' ---> data was discarded.')
+    }
   } else {
     dumpMsg ('message parsed: '+ data.value);
   }
