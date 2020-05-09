@@ -75,18 +75,20 @@ app.post(config.sender.post.path, function (req, res) {
 
   dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
-
-  for (watchdog of watchdogs) {
-    if (watchdog.for == data.table) {
-      clearTimeout(watchdog.id)
-      watchdog.id = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) *60*1000)
-    }
-  }
-
   if (data.interpret !== undefined) {
     dumpMsg ('message parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
   } else {
     dumpMsg ('message parsed: '+ data.value);
+  }
+
+  for (watchdog of watchdogs) {
+    let _status = ' => no action'
+    if (watchdog.for == data.table) {
+      clearTimeout(watchdog.id)
+      watchdog.id = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) *60*1000)
+      _status = ' => reset.'
+    }
+    dumpMsg('watchdog for '+watchdog.for+ _status)
   }
 
   let dbstructure = null;
@@ -305,7 +307,7 @@ const watchdogFired = (d) => {
         "mail", 
         [
           "-s",
-          "rcv-watchdog: No "+d.for+"-Message for : "+d.prms.time+" minutes.",
+          "RCV: Keine Titelaktualisierung für "+d.for+" seit: "+d.prms.time+" Minuten.",
           adr
         ]
       );
