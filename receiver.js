@@ -45,7 +45,7 @@ try {
 
 const {spawn} = require('child_process')
 var watchdogs = [] // array of watchdog-objects
-var lastMessage = {}
+var lastMessageReceived = {}
 
 
 
@@ -76,24 +76,27 @@ app.post(config.sender.post.path, function (req, res) {
   var decrypted = decrypt.update(req.body.data, 'hex', 'utf8')
   decrypted += decrypt.final()
 
-  dumpMsg ('message received.'); //:\n'+decrypted);
+  // dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
   if (data.interpret !== undefined) {
-    dumpMsg (' -> parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
+    dumpMsg ('message -> parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
     if (data.title == "" || data.interpret == "") {
       dumpMsg (' -> possible data-error: '+JSON.stringify(data, null, 2))
       data.table = ""
       dumpMsg (' --> data was discarded.')
     }
+    if (lastMessageReceived == data) {
+      dumpMsg(` ---> received earlier. dicarded.`)
+      data.table = ""
+    }
   } else {
-    if (lastMessage == data) {
-      dumpMsg ('  -> already received, discarded')
+    if (lastMessageReceived == data) {
       data.table = ""
     } else {
-      dumpMsg ('message parsed: '+ data.value);
+      dumpMsg ('message --> parsed: '+ data.value);
     }
   }
-  lastMessage = data
+  lastMessageReceived = data
 
   watchdogs.forEach ( (wd) => {
     if (wd.for == data.table) {
