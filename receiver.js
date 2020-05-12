@@ -45,6 +45,8 @@ try {
 
 const {spawn} = require('child_process')
 var watchdogs = [] // array of watchdog-objects
+var lastMessage = {}
+
 
 
 // Zugriffsrechte checken
@@ -61,10 +63,10 @@ app.use(bodyParser.urlencoded({extended:true, limit: config.receiver.maxRequestS
 createTables(function () {
   var _server =  server.listen(config.receiver.port)
   // setting up watchdog(s) ...
-  for (watchdog of watchdogs) {
+  watchdogs.forEach ((watchdog, i) => {
     watchdog.timerObj = setTimeout(() => {watchdogFired (watchdog)}, parseInt(watchdog.prms.time)*60*1000)
-    dumpMsg('watchdog for '+watchdog.for+' armed. ('+watchdog.prms.time+' minutes.)')
-  }
+    dumpMsg(` - watchdog #${i} for ${watchdog.for} armed. (${watchdog.prms.time} minutes.)`)
+  })
   dumpMsg('startup: receiver running on port ' + config.receiver.port)
 })
 
@@ -77,23 +79,28 @@ app.post(config.sender.post.path, function (req, res) {
   dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
   if (data.interpret !== undefined) {
-    dumpMsg ('message parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
+    dumpMsg (' -> parsed: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
     if (data.title == "" || data.interpret == "") {
-      dumpMsg ('possible data-error: '+JSON.stringify(data, null, 2))
+      dumpMsg (' -> possible data-error: '+JSON.stringify(data, null, 2))
       data.table = ""
-      dumpMsg (' ---> data was discarded.')
+      dumpMsg (' --> data was discarded.')
     }
   } else {
-    dumpMsg ('message parsed: '+ data.value);
-  }
-
-  for (watchdog of watchdogs) {
-    if (watchdog.for == data.table) {
-      clearTimeout(watchdog.timerObj)
-      watchdog.timerObj = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) *60*1000)
-      dumpMsg('watchdog for '+watchdog.for+' reset.')
+    if (lastMessage == data) {
+      dumpMsg ('  -> already received, discarded')
+      data.table = ""
+    } else {
+      dumpMsg ('message parsed: '+ data.value);
     }
   }
+  lastMessage = data
+
+  watchdogs.forEach ( (wd) => {
+    if (wd.for == data.table) {
+      wd.timerObj.refresh()
+      dumpMsg(` -> RESET watchdog for ${watchdog.for}.`)
+    }
+  })
 
   let dbstructure = null;
   for (let i=0; i<config.dbstructure.length; i++) { 
@@ -308,19 +315,20 @@ const dumpMsg = (msg) => {
 }
 
 const watchdogFired = (d) => {
+  console.log ('d.for: '+d.for+'  /  prms: '+JSON.stringify(d.prms, null, 2))
   for (adr of d.prms.adr) {
     try {
       let sendmail = spawn(
         "mail", 
         [
           "-s",
-          "RCV: Keine Titelaktualisierung für "+d.for+" seit: "+d.prms.time+" Minuten.",
+          `RCV: Keine Titelaktualisierung für ${d.for} seit: ${d.prms.time} Minuten.`,
           adr
         ]
       );
       sendmail.stdin.write (d.prms.msg);
       sendmail.stdin.end();
-      dumpMsg ('Watchdog-Mail for topic '+d.for+' sent to '+adr)
+      dumpMsg (`+++ Watchdog-Mail for topic ${d.for} sent to ${adr} +++`)
     } catch(err) {
       dumpMsg ('Error while sending watchdog-mail.')
     }
@@ -329,9 +337,10 @@ const watchdogFired = (d) => {
   // re-arm watchdog
   let _idx = watchdogs.findIndex( (el) => {return (el.for==d.for)})
   if (_idx > -1) {
-    let watchdog = watchdogs[_idx]
-    clearTimeout(watchdog.timerObj)
-    watchdog.timerObj = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) * 60*1000)
+    watchdogs[_idx].timerObj.refresh()
+    // let watchdog = watchdogs[_idx]
+    // clearTimeout(watchdog.timerObj)
+    // watchdog.timerObj = setTimeout( () => {watchdogFired(watchdog)}, parseInt(watchdog.prms.time) * 60*1000)
   }
 
 }
