@@ -101,7 +101,7 @@ app.post(config.sender.post.path, function (req, res) {
   watchdogs.forEach ( (wd) => {
     if (wd.for == data.table) {
       wd.timerObj.refresh()
-      dumpMsg(` -> RESET watchdog for ${watchdog.for}.`)
+      dumpMsg(` -> RESET watchdog for ${wd.for}.`)
     }
   })
 
