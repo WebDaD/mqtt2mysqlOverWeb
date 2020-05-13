@@ -133,17 +133,22 @@ app.post(config.sender.post.path, function (req, res) {
   let SQL = 'INSERT INTO ' + data.table + ' SET ' + assignmentList;
   connection.query(SQL, function (error, results, fields) {
     if (error) {
-      dumpMsg (' - Fehler beim Insert: '+error+'SQL:\n'+SQL+'\nDetails: '+JSON.stringify(error, null, 2));
-      // console.error(error)
-      cache.data.push(data)
-      cache.save()
-      // res.status(500).end('error')
+      if (error.code !== "ER_DUP_ENTRY") {
+        dumpMsg (' - Fehler beim Insert: '+error+'SQL:\n'+SQL+'\nDetails: '+JSON.stringify(error, null, 2));
+        // console.error(error)
+        cache.data.push(data)
+        cache.save()
+        // res.status(500).end('error')
+      } else {
+        dumpMsg(' - ignored (duplicate entry).')
+      }
     } else {
-        if (data.interpret !== undefined) {
-          save2DB.savePlaylist (data, io);
-        } else {
-          console.log()
-        }
+      dumpMsg(` - raw-data saved in table ${data.table}.`)
+      if (data.interpret !== undefined) {
+        save2DB.savePlaylist (data, io);
+      } else {
+        console.log()
+      }
     }
 
   })
@@ -190,17 +195,27 @@ setInterval(function () {
       }
     }
     assignmentList = assignmentList.substr(0, assignmentList.length - 2)
-    let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
+    // let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
+    let SQL = 'INSERT INTO ' + data.table + ' SET ' + assignmentList;
     connection.query(SQL, function (error, results, fields) {
       if (error) {
-        dumpMsg (' + Fehler beim erneuten Insert: '+error+'SQL:\n'+SQL);
-        console.error(error);
+        if (error.code != "ER_DUP_ENTRY") {
+          dumpMsg (' + Fehler beim erneuten Insert: '+error+'SQL:\n'+SQL);
+          console.error(error);
+        } else {
+          dumpMsg(' + ignored (duplicate entry).')
+        }
       } else {
+        dumpMsg(` + raw-data saved in table ${data.table}.`)
         // hat geklappt
         cache.data.shift(); // erstes Element aus dem Cache entfernen
         cache.save()
-        save2DB.savePlaylist (data);
-      }
+        if (data.interpret !== undefined) {
+          save2DB.savePlaylist (data, io);
+        } else {
+          console.log()
+        }
+      } 
     })
   }
 }, config.receiver.cache.retry)
