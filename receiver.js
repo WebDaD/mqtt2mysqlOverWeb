@@ -77,88 +77,75 @@ app.post(config.sender.post.path, function (req, res) {
   decrypted += decrypt.final()
 
   // dumpMsg ('message received.'); //:\n'+decrypted);
-
-  let msgIdx = lastMessagesReceived.findIndex( (msg) => {return msg == decrypted})
-  if (msgIdx == -1) {
-    // offenbar neue Nachricht ...
-    if (lastMessagesReceived.length > 5) {
-      lastMessagesReceived.shift()
-    }
-    lastMessagesReceived.push(decrypted)
-
-    let data = JSON.parse(decrypted)
-    if (data.interpret !== undefined) {
-      dumpMsg ('MUSIC-info received: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
-    } else {
-      dumpMsg (Date.now()+'  MESSAGE received: '+ data.value);
-    }
-
-    
-    watchdogs.forEach ( (wd) => {
-      if (wd.for == data.table) {
-        wd.timerObj.refresh()
-        dumpMsg(` -> RESET watchdog for ${wd.for}.`)
-      }
-    })
-
-
-    let dbstructure = null;
-    for (let i=0; i<config.dbstructure.length; i++) { 
-      if (config.dbstructure[i].tables.indexOf(data.table) > -1) 
-        dbstructure = config.dbstructure[i];
-    }
-    if (dbstructure === null)
-      return dumpMsg ('ERROR: No DB-Table-Definition for topic "'+data.table+'"');
-
-    let assignmentList = '';
-    for (let i=0; i<dbstructure.fields.length; i++) {
-      const field = dbstructure.fields[i].field;
-      assignmentList += '`'+field+'`="'+data[field].toString().replace (/\"/g, '\\"')+'", ';
-    }
-    for (let i=0; i<dbstructure.files.length; i++) {
-      const element = dbstructure.files[i];
-      if (data[element.name] != '') {
-        let _path = config.receiver.store + element.name;
-        let elData = new Buffer.from (data[element.name], 'binary');
-        dumpMsg ('Checking Basepath: '+_path);
-        if (!fs.existsSync (_path))
-          fs.mkdirSync (_path, {recursive: true});
-        let fn = _path + '/' + data.musicid + '.' + element.extension;
-        dumpMsg ('Saving file for *'+element.name+'*: '+fn);
-        try {
-          fs.writeFileSync(fn, elData);
-          assignmentList += '`' + element.name + '`=1, '
-        } catch(e) {
-          dumpMsg ('Error during writeFilySync(): \n' + e);
-          assignmentList += '`' + element.name +'`=0, ';
-        }
-      } else {
-        assignmentList += '`' + element.name + '`=0, '
-      }
-    }
-
-    assignmentList = assignmentList.substr(0, assignmentList.length - 2)
-    let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
-    connection.query(SQL, function (error, results, fields) {
-      if (error) {
-        dumpMsg ('Fehler beim Insert: '+error+'SQL:\n'+SQL);
-        console.error(error)
-        cache.data.push(data)
-        cache.save()
-        res.status(500).end('error')
-      } else {
-          if (data.interpret !== undefined) {
-            save2DB.savePlaylist (data, io);
-          } else {
-            dumpMsg('+++++')
-          }
-      }
-
-    })
-  }   //  /falls die Nachricht neu ist - d.h. nicht bereits in den zuletzt empfangenen n Nachrichten enthalten war
-  else {
-    dumpMsg('received message discarded - received earlier.\n++++')
+  let data = JSON.parse(decrypted)
+  if (data.interpret !== undefined) {
+    dumpMsg ('MUSIC-info received: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
+  } else {
+    dumpMsg ('MESSAGE received: '+ data.value);
   }
+
+  
+  watchdogs.forEach ( (wd) => {
+    if (wd.for == data.table) {
+      wd.timerObj.refresh()
+      dumpMsg(` -> RESET watchdog for ${wd.for}.`)
+    }
+  })
+
+
+  let dbstructure = null;
+  for (let i=0; i<config.dbstructure.length; i++) { 
+    if (config.dbstructure[i].tables.indexOf(data.table) > -1) 
+      dbstructure = config.dbstructure[i];
+  }
+  if (dbstructure === null)
+    return dumpMsg ('ERROR: No DB-Table-Definition for topic "'+data.table+'"');
+
+  let assignmentList = '';
+  for (let i=0; i<dbstructure.fields.length; i++) {
+    const field = dbstructure.fields[i].field;
+    assignmentList += '`'+field+'`="'+data[field].toString().replace (/\"/g, '\\"')+'", ';
+  }
+  for (let i=0; i<dbstructure.files.length; i++) {
+    const element = dbstructure.files[i];
+    if (data[element.name] != '') {
+      let _path = config.receiver.store + element.name;
+      let elData = new Buffer.from (data[element.name], 'binary');
+      dumpMsg ('Checking Basepath: '+_path);
+      if (!fs.existsSync (_path))
+        fs.mkdirSync (_path, {recursive: true});
+      let fn = _path + '/' + data.musicid + '.' + element.extension;
+      dumpMsg ('Saving file for *'+element.name+'*: '+fn);
+      try {
+        fs.writeFileSync(fn, elData);
+        assignmentList += '`' + element.name + '`=1, '
+      } catch(e) {
+        dumpMsg ('Error during writeFilySync(): \n' + e);
+        assignmentList += '`' + element.name +'`=0, ';
+      }
+    } else {
+      assignmentList += '`' + element.name + '`=0, '
+    }
+  }
+
+  assignmentList = assignmentList.substr(0, assignmentList.length - 2)
+  let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
+  connection.query(SQL, function (error, results, fields) {
+    if (error) {
+      dumpMsg ('Fehler beim Insert: '+error+'SQL:\n'+SQL);
+      console.error(error)
+      cache.data.push(data)
+      cache.save()
+      res.status(500).end('error')
+    } else {
+        if (data.interpret !== undefined) {
+          save2DB.savePlaylist (data, io);
+        } else {
+          console.log()
+        }
+    }
+
+  })
 })
 
 // Warteschlange abarbeiten
