@@ -316,7 +316,7 @@ function createTables (callback) {
 const dumpMsg = (msg) => {
   if (config.receiver.debug) {
     let _t = new Date()
-    var _st = (_t.getHours() < 10 ? '0' : '') + _t.getHours() + ':' + (_t.getMinutes() < 10 ? '0' : '') + _t.getMinutes() + ':' + (_t.getSeconds() < 10 ? '0' : '') + _t.getSeconds()
+    var _st = (_t.getHours() < 10 ? '0' : '') + _t.getHours() + ':' + (_t.getMinutes() < 10 ? '0' : '') + _t.getMinutes() + ':' + (_t.getSeconds() < 10 ? '0' : '') + _t.getSeconds() + ',' + _t.getMilliseconds()
     console.log (_st + '  ' + msg);
   }
 }
