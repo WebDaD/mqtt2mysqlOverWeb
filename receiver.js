@@ -79,12 +79,12 @@ app.post(config.sender.post.path, function (req, res) {
   // dumpMsg ('message received.'); //:\n'+decrypted);
 
   let msgIdx = lastMessagesReceived.findIndex( (msg) => {return msg == decrypted})
-  if (msgIndex == -1) {
+  if (msgIdx == -1) {
+    // offenbar neue Nachricht ...
     if (lastMessagesReceived.length > 5) {
       lastMessagesReceived.shift()
     }
     lastMessagesReceived.push(decrypted)
-
 
     let data = JSON.parse(decrypted)
     if (data.interpret !== undefined) {
