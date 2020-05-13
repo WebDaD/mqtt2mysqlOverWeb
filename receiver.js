@@ -90,7 +90,7 @@ app.post(config.sender.post.path, function (req, res) {
     if (data.interpret !== undefined) {
       dumpMsg ('MUSIC-info received: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
     } else {
-      dumpMsg ('MESSAGE received: '+ data.value);
+      dumpMsg (Date.now()+'  MESSAGE received: '+ data.value);
     }
 
     
@@ -150,7 +150,7 @@ app.post(config.sender.post.path, function (req, res) {
           if (data.interpret !== undefined) {
             save2DB.savePlaylist (data, io);
           } else {
-            dumpMsg('-----')
+            dumpMsg('+++++')
           }
       }
 
