@@ -273,7 +273,8 @@ module.exports.savePlaylist = (data, socket=undefined) => {
       data['titleID'] = id;
       // Playlist updaten ...
       _getPlaylistID (data).then ( (id) => {
-        dumpMsg ('returned from _getPlaylist() with result: '+id+(socket===undefined?'"\n-----':''));
+        dumpMsg('_getPlaylist(): '+id +  (socket===undefined || (socket !== undefined && id !== true) ? '\n *****': ''))
+        dumpMsg ('returned from _getPlaylist() with result: '+id+(socket===undefined || (socket !== undefined && ?'"\n-----':''));
         if (id === true && socket !== undefined) {
           dumpMsg('Emitting message "'+config.receiver.socket.msg+'" to clients for "'+data.table+'" ('+data.interpret+' / "'+data.title+'")\n-----');
           socket.sockets.emit (config.receiver.socket.msg, {'for': data.table});
