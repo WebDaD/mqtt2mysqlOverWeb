@@ -129,7 +129,8 @@ app.post(config.sender.post.path, function (req, res) {
   }
 
   assignmentList = assignmentList.substr(0, assignmentList.length - 2)
-  let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
+  // let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
+  let SQL = 'INSERT INTO ' + data.table + ' SET ' + assignmentList;
   connection.query(SQL, function (error, results, fields) {
     if (error) {
       dumpMsg (' - Fehler beim Insert: '+error+'SQL:\n'+SQL);

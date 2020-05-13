@@ -133,7 +133,7 @@ var _getPlaylistID = (data) => {
       }
       else {
         if (result.length > 0) {
-          dumpMsg ('Found Playlist-Entry for '+data.timestamp+' on station: '+data.table);
+          // dumpMsg (' - Playlist-Entry for '+data.timestamp+' on station: '+data.table+' found.');
           resolve (result[0].start +' / ' + result[0].station);
         }
         else {
@@ -146,9 +146,9 @@ var _getPlaylistID = (data) => {
             }
             else {
               let deltaTime = (Date.now() - Date.parse(data.timestamp)) / 1000;
-              dumpMsg (`Playlist-Entry for ${data.table} at ${data.timestamp} created. Delay: ${deltaTime} secs.`);
+              dumpMsg (` - Playlist-Entry for ${data.table} at ${data.timestamp} created. Delay: ${deltaTime} secs.`);
               if (deltaTime > parseInt(config.receiver["save2DB.js"].alarms.timeThreshold)) {
-                dumpMsg (`Sending alarm-mail to ${config.receiver["save2DB.js"].alarms.emailAddress}`)
+                dumpMsg (` -- Sending alarm-mail to ${config.receiver["save2DB.js"].alarms.emailAddress}`)
                 try {
                   let sendmail = spawn(
                     "mail", 
@@ -163,7 +163,7 @@ var _getPlaylistID = (data) => {
                   );
                   sendmail.stdin.end();
                 } catch(err) {
-                  dumpMsg ('Error while sending alarm-mail.')
+                  dumpMsg (' -- Error while sending alarm-mail.')
                 }
               }
               resolve (true); 
