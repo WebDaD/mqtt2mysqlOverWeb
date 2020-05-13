@@ -56,23 +56,23 @@ var _getArtistID = (data) => {
   return new Promise ((resolve, reject) => {
     hDB.query (SQL, (err, result, fields) => {
       if (err) {
-        dumpMsg ('getArtist(): ERROR\n'+err);
+        dumpMsg (' - getArtist(): ERROR\n'+err);
         reject (err);
       }
       else {
         if (result.length > 0) {
-          dumpMsg ('Artist found. '+data.interpret+'  -->  '+result[0].id);
+          dumpMsg (' - getArtistID(): '+data.interpret+'  -->  '+result[0].id);
           resolve (result[0].id);
         }
         else {
           SQL = 'insert into `'+dbConf.database+'`.`artists` (artist) values ("'+data.interpret+'")';
           hDB.query (SQL, (err, result, fields) => {
             if (err) {
-              dumpMsg ('ERROR during artist-creation\n'+err);
+              dumpMsg (' - ERROR during artist-creation\n'+err);
               reject (err);
             }
             else {
-              dumpMsg ('Artist created: '+data.interpret+' ('+result.insertId+')');
+              dumpMsg (' - getArtistID(): '+data.interpret+' created new. ('+result.insertId+')');
               resolve (result.insertId);
             }
           });
@@ -91,12 +91,12 @@ var _getTitleID = (data) => {
   return new Promise ((resolve, reject) => {
     hDB.query (SQL, (err, result, fields) => {
       if (err) {
-        dumpMsg ('ERROR: _getTitle()\n'+err);
+        dumpMsg (' - _getTitle(): ERROR\n'+err);
         reject (err);
       }
       else {
         if (result.length > 0) {
-          dumpMsg ('Title found. "'+data.title+'" by '+data.interpret+'   -->  '+result[0].musicID);
+          dumpMsg (' - getTitleID(): "'+data.title+'" by '+data.interpret+'  -->  '+result[0].musicID);
           resolve (result[0].musicID);
         }
         else {
@@ -105,11 +105,11 @@ var _getTitleID = (data) => {
           hDB.query (SQL, (err, result, fields) => {
             dumpMsg ('title: '+data.title+' not found.'); //\nresult:'+JSON.stringify(result, null, 2));
             if (err) {
-              dumpMsg ('ERROR during title-creation.\n'+SQL+'\n'+err);
+              dumpMsg (' - getTitleID(): ERROR during title-creation.\n'+SQL+'\n'+err);
               reject (err);
             }
             else {
-              dumpMsg ('Title created: "'+data.title+'" ('+data.musicid+')');
+              dumpMsg (' - getTitleID(): "'+data.title+'" created new. ('+data.musicid+')');
               resolve (data.musicid);
             }
           });
@@ -128,7 +128,7 @@ var _getPlaylistID = (data) => {
   return new Promise ((resolve, reject) => {
     hDB.query (SQL, (err, result, fields) => {
       if (err) {
-        console.log ('ERROR: _getPlaylistID()\n'+err);
+        console.log (' - _getPlaylistID(): ERROR\n'+err);
         reject (err);
       }
       else {
@@ -176,35 +176,6 @@ var _getPlaylistID = (data) => {
 
   });
 };  //  /_getPlaylistID()
-
-
-let write2DB = (data) => {
-  console.log ('Promise-Constructor called for: '+data.intent);
-  return new Promise ( (resolve, reject) => {
-    hDB.query (data.dbQuery, (err, result) => {
-      if (err) {
-        console.log ('Fehler: '+err);
-        reject (err);
-      }
-      else {
-        if (result.length > 0 && result[0][data.returnVal] != 'undefined')
-         resolve (result[0][data.returnVal]);
-        else {
-          hDB.query (data.dbInsert, (err, result) => {
-            if (err) {
-              console.log ('Fehler beim Anlegen: '+data.intent+'\n'+err);
-              reject (err);
-            }
-            else {
-              // Anlegen hat geklappt -> 
-              resolve ();
-            }
-          })
-        }
-      }
-    })
-  })
-}
 
 
 const queryDB = (SQL) => {
@@ -273,15 +244,15 @@ module.exports.savePlaylist = (data, socket=undefined) => {
       data['titleID'] = id;
       // Playlist updaten ...
       _getPlaylistID (data).then ( (id) => {
-        dumpMsg('_getPlaylist(): '+id +  (socket===undefined || (socket !== undefined && id !== true) ? '\n *****': ''))
+        dumpMsg(' - _getPlaylist(): '+id +  (socket===undefined || (socket !== undefined && id !== true) ? '\n *****': ''))
         if (id === true && socket !== undefined) {
-          dumpMsg('Emitting message "'+config.receiver.socket.msg+'" to clients for "'+data.table+'" ('+data.interpret+' / "'+data.title+'")\n-----');
+          dumpMsg(' - Emitting message "'+config.receiver.socket.msg+'" to clients for "'+data.table+'" ('+data.interpret+' / "'+data.title+'")\n-----');
           socket.sockets.emit (config.receiver.socket.msg, {'for': data.table});
         }
       }); // Playlist gespeichert
     }); // Titel angelegt bzw. gefunden
   }).catch ((err) => {
-    dumpMsg ('Error during save2DB:\n'+err);
+    dumpMsg ('ERROR during save2DB:\n'+err);
   });
 
 };  //  /savePlaylist()

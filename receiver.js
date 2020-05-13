@@ -111,16 +111,16 @@ app.post(config.sender.post.path, function (req, res) {
     if (data[element.name] != '') {
       let _path = config.receiver.store + element.name;
       let elData = new Buffer.from (data[element.name], 'binary');
-      dumpMsg ('Checking Basepath: '+_path);
+      dumpMsg (' - Checking Basepath: '+_path);
       if (!fs.existsSync (_path))
         fs.mkdirSync (_path, {recursive: true});
       let fn = _path + '/' + data.musicid + '.' + element.extension;
-      dumpMsg ('Saving file for *'+element.name+'*: '+fn);
+      dumpMsg (' - Saving file for *'+element.name+'*: '+fn);
       try {
         fs.writeFileSync(fn, elData);
         assignmentList += '`' + element.name + '`=1, '
       } catch(e) {
-        dumpMsg ('Error during writeFilySync(): \n' + e);
+        dumpMsg (' - Error during writeFilySync(): \n' + e);
         assignmentList += '`' + element.name +'`=0, ';
       }
     } else {
@@ -132,7 +132,7 @@ app.post(config.sender.post.path, function (req, res) {
   let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
   connection.query(SQL, function (error, results, fields) {
     if (error) {
-      dumpMsg ('Fehler beim Insert: '+error+'SQL:\n'+SQL);
+      dumpMsg (' - Fehler beim Insert: '+error+'SQL:\n'+SQL);
       console.error(error)
       cache.data.push(data)
       cache.save()
@@ -172,16 +172,16 @@ setInterval(function () {
       if (content !== '') {
         // checken, ob das Zielverzeichnis existiert ... (braucht's eigentlich nicht, weil das ja bereits eine Ebene drüber erschlagen wurde)
         let _path = config.receiver.store + element.name;
-        dumpMsg ('Checking Basepath: '+_path);
+        dumpMsg (' + Checking Basepath: '+_path);
         if (!fs.existsSync (_path))
           fs.mkdirSync (_path, {recursive:true});
         let fn = _path + '/' + data.musicid + '.' + element.extension;
-        dumpMsg ('Retry saving file for *'+element.name+'*: '+fn);
+        dumpMsg (' + Retry saving file for *'+element.name+'*: '+fn);
         try {
           fs.writeFileSync(fn, content);
           assignmentList += '`' + element.name + '`=1, ';
         } catch (e) {
-          dumpMsg ('Still error during writeFilySync(): \n' + e);
+          dumpMsg (' + Still error during writeFilySync(): \n' + e);
           assignmentList += '`' + element.name +'`=0, ';
         }
       } else {
@@ -192,7 +192,7 @@ setInterval(function () {
     let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
     connection.query(SQL, function (error, results, fields) {
       if (error) {
-        dumpMsg ('Fehler beim erneuten Insert: '+error+'SQL:\n'+SQL);
+        dumpMsg (' + Fehler beim erneuten Insert: '+error+'SQL:\n'+SQL);
         console.error(error);
       } else {
         // hat geklappt
