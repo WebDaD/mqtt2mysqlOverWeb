@@ -89,10 +89,6 @@ app.post(config.sender.post.path, function (req, res) {
     let data = JSON.parse(decrypted)
     if (data.interpret !== undefined) {
       dumpMsg ('MUSIC-info received: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
-      if (data.title == "" || data.interpret == "") {
-        dumpMsg (' -> possible data-error: '+JSON.stringify(data, null, 2))
-        data.table += " --> discarded."
-      }
     } else {
       dumpMsg ('MESSAGE received: '+ data.value);
     }
@@ -154,14 +150,14 @@ app.post(config.sender.post.path, function (req, res) {
           if (data.interpret !== undefined) {
             save2DB.savePlaylist (data, io);
           } else {
-            dumpMsg('\n-----')
+            dumpMsg('-----')
           }
       }
 
     })
-  }   //  /falls die Nachricht neu ist - d.h. nicht bereits in den zuletzt empfangenen 5 Nachrichten enthalten war
+  }   //  /falls die Nachricht neu ist - d.h. nicht bereits in den zuletzt empfangenen n Nachrichten enthalten war
   else {
-    dumpMsg('received message discarded - received earlier.\n'+JSON.stringify(decrypted, null, 2)+'\n++++')
+    dumpMsg('received message discarded - received earlier.\n++++')
   }
 })
 
