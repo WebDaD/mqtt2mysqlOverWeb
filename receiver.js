@@ -88,7 +88,7 @@ app.post(config.sender.post.path, function (req, res) {
   watchdogs.forEach ( (wd) => {
     if (wd.for == data.table) {
       wd.timerObj.refresh()
-      dumpMsg(` -> RESET watchdog for ${wd.for}.`)
+      dumpMsg(` - RESET watchdog for ${wd.for}.`)
     }
   })
 
@@ -303,7 +303,7 @@ function createTables (callback) {
 const dumpMsg = (msg) => {
   if (config.receiver.debug) {
     let _t = new Date()
-    var _st = (_t.getHours() < 10 ? '0' : '') + _t.getHours() + ':' + (_t.getMinutes() < 10 ? '0' : '') + _t.getMinutes() + ':' + (_t.getSeconds() < 10 ? '0' : '') + _t.getSeconds() + ',' + _t.getMilliseconds()
+    let _st = _t.getHours().toString().padStart(2,'0') + ':' + _t.getMinutes().toString().padStart(2,'0') + ':' + _t.getSeconds().toString().padStart(2,'0') + ',' + _t.getMilliseconds().toString().padStart(3,'0')
     console.log (_st + '  ' + msg);
   }
 }
