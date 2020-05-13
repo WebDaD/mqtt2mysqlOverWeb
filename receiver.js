@@ -153,13 +153,15 @@ app.post(config.sender.post.path, function (req, res) {
       } else {
           if (data.interpret !== undefined) {
             save2DB.savePlaylist (data, io);
+          } else {
+            dumpMsg('\n-----')
           }
       }
 
     })
   }   //  /falls die Nachricht neu ist - d.h. nicht bereits in den zuletzt empfangenen 5 Nachrichten enthalten war
   else {
-    dumpMsg('received message discarded - received earlier.')
+    dumpMsg('received message discarded - received earlier.\n'+JSON.stringify(decrypted, null, 2)+'\n++++')
   }
 })
 
