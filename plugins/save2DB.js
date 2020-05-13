@@ -61,7 +61,7 @@ var _getArtistID = (data) => {
       }
       else {
         if (result.length > 0) {
-          dumpMsg ('Artist found. Id: '+result[0].id);
+          dumpMsg ('Artist found. '+data.interpret+'  -->  '+result[0].id);
           resolve (result[0].id);
         }
         else {
