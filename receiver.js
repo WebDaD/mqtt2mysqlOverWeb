@@ -140,7 +140,7 @@ app.post(config.sender.post.path, function (req, res) {
         cache.save()
         // res.status(500).end('error')
       } else {
-        dumpMsg(' - ignored (duplicate entry).')
+        dumpMsg(' - ignored (duplicate entry).\n')
       }
     } else {
       dumpMsg(` - raw-data saved in table ${data.table}.`)
@@ -152,6 +152,7 @@ app.post(config.sender.post.path, function (req, res) {
     }
 
   })
+  res.status(200).send('ok.')
 })
 
 // Warteschlange abarbeiten
@@ -203,7 +204,7 @@ setInterval(function () {
           dumpMsg (' + Fehler beim erneuten Insert: '+error+'SQL:\n'+SQL);
           console.error(error);
         } else {
-          dumpMsg(' + ignored (duplicate entry).')
+          dumpMsg(' + ignored (duplicate entry).\n')
         }
       } else {
         dumpMsg(` + raw-data saved in table ${data.table}.`)
