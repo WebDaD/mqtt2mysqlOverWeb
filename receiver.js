@@ -64,7 +64,8 @@ createTables(function () {
   var _server =  server.listen(config.receiver.port)
   // setting up watchdog(s) ...
   watchdogs.forEach ((watchdog, i) => {
-    watchdog.timerObj = setTimeout(() => {watchdogFired (watchdog)}, parseInt(watchdog.prms.time)*60*1000)
+    watchdog.timerObj = setTimeout(() => {watchdogFired (watchdog)}, parseInt(watchdog.prms.time)*60*1000);
+    watchdog.prms.lastMessageReceivedAt = 0;
     dumpMsg(` - watchdog #${i} for ${watchdog.for} armed. (${watchdog.prms.time} minutes.)`)
   })
   dumpMsg('startup: receiver running on port ' + config.receiver.port)
