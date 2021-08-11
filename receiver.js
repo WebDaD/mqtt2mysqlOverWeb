@@ -332,7 +332,7 @@ const dumpMsg = (msg) => {
 const watchdogFired = (d) => {
   console.log ('d.for: '+d.for+'  /  prms: '+JSON.stringify(d.prms, null, 2));
   let _d = new Date (d.prms.lastMessageReceivedAt);
-  let _dString = `${_d.getHours().toString().padStart(2,'0')}.${_d.getMinutes().toString().padStart(2,'0')}.${_d.getFullYear().toString()}, ${_d.getHours().toString().padStart(2,'0')}:${_d.getMinutes().toString().padStart(2,'0')}:${_d.getSeconds().toString().padStart(2,'0')}`;
+  let _dString = `${_d.getDate().toString().padStart(2,'0')}.${(_d.getMonth()+1).toString().padStart(2,'0')}.${_d.getFullYear().toString()}, ${_d.getHours().toString().padStart(2,'0')}:${_d.getMinutes().toString().padStart(2,'0')}:${_d.getSeconds().toString().padStart(2,'0')}`;
   for (adr of d.prms.adr) {
     try {
       let sendmail = spawn(
@@ -355,7 +355,7 @@ const watchdogFired = (d) => {
   let _idx = watchdogs.findIndex( (el) => {return (el.for==d.for)})
   if (_idx > -1) {
     watchdogs[_idx].timerObj.refresh()
-    watchdogs[_idx].timerObj.prms.lastMessageReceivedAt = Date.now();
+    watchdogs[_idx].prms.lastMessageReceivedAt = Date.now();
   }
 
 }
