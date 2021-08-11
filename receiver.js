@@ -88,6 +88,7 @@ app.post(config.sender.post.path, function (req, res) {
   watchdogs.forEach ( (wd) => {
     if (wd.for == data.table) {
       wd.timerObj.refresh()
+      wd.prms.lastMessageReceivedAt = Date.now();
       dumpMsg(` - RESET watchdog for ${wd.for}.`)
     }
   })
@@ -103,8 +104,10 @@ app.post(config.sender.post.path, function (req, res) {
 
   let assignmentList = '';
   for (let i=0; i<dbstructure.fields.length; i++) {
-    const field = dbstructure.fields[i].field;
-    assignmentList += '`'+field+'`="'+data[field].toString().replace (/\"/g, '\\"')+'", ';
+    let field = dbstructure.fields[i].field;
+    let _data = data[field] !== undefined ? data[field].toString().replace (/\"/g, '\\"') : "*****";
+    // assignmentList += '`'+field+'`="'+data[field].toString().replace (/\"/g, '\\"')+'", ';
+    assignmentList += `\`${field}\` = "${_data}", `;
   }
   for (let i=0; i<dbstructure.files.length; i++) {
     const element = dbstructure.files[i];
@@ -152,7 +155,7 @@ app.post(config.sender.post.path, function (req, res) {
     }
 
   })
-  res.status(200).send('ok.')
+  res.status(200).send('ok.') 
 })
 
 // Warteschlange abarbeiten
@@ -326,14 +329,16 @@ const dumpMsg = (msg) => {
 }
 
 const watchdogFired = (d) => {
-  console.log ('d.for: '+d.for+'  /  prms: '+JSON.stringify(d.prms, null, 2))
+  console.log ('d.for: '+d.for+'  /  prms: '+JSON.stringify(d.prms, null, 2));
+  let _d = new Date (d.prms.lastMessageReceivedAt);
+  let _dString = `${_d.getHours().toString().padStart(2,'0')}.${_d.getMinutes().toString().padStart(2,'0')}.${_d.getFullYear().toString()}, ${_d.getHours().toString().padStart(2,'0')}:${_d.getMinutes().toString().padStart(2,'0')}:${_d.getSeconds().toString().padStart(2,'0')}`;
   for (adr of d.prms.adr) {
     try {
       let sendmail = spawn(
         "mail", 
         [
           "-s",
-          `RCV: Keine Titelaktualisierung für ${d.for} seit: ${d.prms.time} Minuten.`,
+          `RCV: Keine Titelaktualisierung für ${d.for} seit: ${d.prms.time} Minuten. (Zuletzt aktualisiert um: ${_dString})`,
           adr
         ]
       );
@@ -349,6 +354,7 @@ const watchdogFired = (d) => {
   let _idx = watchdogs.findIndex( (el) => {return (el.for==d.for)})
   if (_idx > -1) {
     watchdogs[_idx].timerObj.refresh()
+    watchdogs[_idx].timerObj.prms.lastMessageReceivedAt = Date.now();
   }
 
 }
