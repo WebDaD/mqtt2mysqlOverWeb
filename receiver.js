@@ -331,15 +331,33 @@ const dumpMsg = (msg) => {
 
 const watchdogFired = (d) => {
   console.log ('d.for: '+d.for+'  /  prms: '+JSON.stringify(d.prms, null, 2));
-  let _d = new Date (d.prms.lastMessageReceivedAt);
-  let _dString = `${_d.getDate().toString().padStart(2,'0')}.${(_d.getMonth()+1).toString().padStart(2,'0')}.${_d.getFullYear().toString()}, ${_d.getHours().toString().padStart(2,'0')}:${_d.getMinutes().toString().padStart(2,'0')}:${_d.getSeconds().toString().padStart(2,'0')}`;
+  let parts = {
+    // y: 31536000,
+    // m: 2592000,
+    // w: 604800, // uncomment row to ignore
+    // d: 86400,
+    h: 3600,
+    min: 60,
+    sec: 1  
+  };
+
+  // let _d = new Date (d.prms.lastMessageReceivedAt);
+  // let _dString = `${_d.getDate().toString().padStart(2,'0')}.${(_d.getMonth()+1).toString().padStart(2,'0')}.${_d.getFullYear().toString()}, ${_d.getHours().toString().padStart(2,'0')}:${_d.getMinutes().toString().padStart(2,'0')}:${_d.getSeconds().toString().padStart(2,'0')}`;
+  let _dt = new Date (new Date(d.prms.lastMessageReceivedAt).getTime() - new Date().getTime());
+  let _dtObj = {};
+  Object.keys(parts).forEach( function (key) {
+    ret[key] = Math.floor(_dt/parts[key]);
+    _dt -= ret[key] * parts[key];
+  });
+
   for (adr of d.prms.adr) {
     try {
       let sendmail = spawn(
         "mail", 
         [
           "-s",
-          `RCV: Keine Titelaktualisierung für ${d.for} seit: ${d.prms.time} Minuten. (Zuletzt aktualisiert um: ${_dString})`,
+          // `RCV: Keine Titelaktualisierung für ${d.for} seit: ${d.prms.time} Minuten. (Zuletzt aktualisiert: ${_dString})`,
+          `Keine Titelaktualisierung seit ${_dtObj.h ? `${_dtObj.h.toString().padStart(2,'0')}h, `:''}${_dtObj.min ? `${_dtObj.min.toString().padStart(2,'0')}'`:''}${_dtObj.sec ? `${_dtObj.sec.toString().padStart(2,'0')}''`:''}`,
           adr
         ]
       );
@@ -355,7 +373,7 @@ const watchdogFired = (d) => {
   let _idx = watchdogs.findIndex( (el) => {return (el.for==d.for)})
   if (_idx > -1) {
     watchdogs[_idx].timerObj.refresh()
-    watchdogs[_idx].prms.lastMessageReceivedAt = Date.now();
+    // watchdogs[_idx].prms.lastMessageReceivedAt = Date.now();
   }
 
 }
