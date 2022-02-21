@@ -104,12 +104,12 @@ var _getTitleID = (data) => {
           SQL = 'insert into `'+dbConf.database+'`.`titles` (musicID, artistID, title, length, coverID) values ("'+data.musicid+'", '+data.artistID+', "'+data.title+'", "'+data.duration+'", '+(data.cover!=="" ? 1 : 0)+')';
           hDB.query (SQL, (err, result, fields) => {
             dumpMsg ('title: '+data.title+' not found.'); //\nresult:'+JSON.stringify(result, null, 2));
-            if (err) {
-              dumpMsg (' - getTitleID(): ERROR during title-creation.\n'+SQL+'\n'+err);
+            if (err && err.code !== "ER_DUP_ENTRY") {
+              dumpMsg (' - getTitleID(): ERROR  during title-creation.\n'+SQL+'\n'+err);
               reject (err);
             }
             else {
-              dumpMsg (' - getTitleID(): "'+data.title+'" created new. ('+data.musicid+')');
+              dumpMsg (` - getTitleID(): "${data.title}" ${ err ? 'already exists' : 'created new'} (${data.musicid})`);
               resolve (data.musicid);
             }
           });
@@ -249,7 +249,11 @@ module.exports.savePlaylist = (data, socket=undefined) => {
           dumpMsg(' - Emitting message "'+config.receiver.socket.msg+'" to clients for "'+data.table+'" ('+data.interpret+' / "'+data.title+'")\n-----');
           socket.sockets.emit (config.receiver.socket.msg, {for: data.table, title: data.title, performer: data.interpret, composer: data.composer, duration: data.duration});          
         }
+      }).catch( (err) => {
+        dumpMsg(`ERROR during _getPlaylistID():\n${err}`);
       }); // Playlist gespeichert
+    }).catch((err) =>{
+      dumpMsg('Error during title creation:\n'+err);
     }); // Titel angelegt bzw. gefunden
   }).catch ((err) => {
     dumpMsg ('ERROR during save2DB:\n'+err);
