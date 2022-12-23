@@ -18,12 +18,12 @@ const CACHE = require('./lib/jsonfilecache')
 let cache = CACHE.JsonFileCache(config.receiver.cache)
 cache.load()
 
-const save2DB = require ('./plugins/save2DB');
+const save2DB = require('./plugins/save2DB');
 
-const io = require ('socket.io')(server)
-io.on ('connection', (socket) => {
-  console.log ('client-connected: '+socket.id+' / total active connections: '+io.engine.clientsCount)
-  socket.emit (config.receiver.socket.msg, {'data': 'you are connected to the server.'+config.receiver.socket.host+' on '+config.receiver.socket.path})
+const io = require('socket.io')(server)
+io.on('connection', (socket) => {
+  console.log('client-connected: ' + socket.id + ' / total active connections: ' + io.engine.clientsCount)
+  socket.emit(config.receiver.socket.msg, { 'data': 'you are connected to the server.' + config.receiver.socket.host + ' on ' + config.receiver.socket.path })
 })
 
 
@@ -43,7 +43,7 @@ try {
   process.exit(5)
 }
 
-const {spawn} = require('child_process')
+const { spawn } = require('child_process')
 var watchdogs = [] // array of watchdog-objects
 var lastMessagesReceived = []
 
@@ -51,20 +51,20 @@ var lastMessagesReceived = []
 
 // Zugriffsrechte checken
 try {
-  fs.accessSync (config.receiver.store, fs.constants.W_OK);
+  fs.accessSync(config.receiver.store, fs.constants.W_OK);
 } catch (e) {
-  console.error (e);
-  process.exit (6);
+  console.error(e);
+  process.exit(6);
 }
 
 
-app.use(bodyParser.urlencoded({extended:true, limit: config.receiver.maxRequestSize})) // for parsing formdata
+app.use(bodyParser.urlencoded({ extended: true, limit: config.receiver.maxRequestSize })) // for parsing formdata
 
 createTables(function () {
-  var _server =  server.listen(config.receiver.port)
+  var _server = server.listen(config.receiver.port)
   // setting up watchdog(s) ...
-  watchdogs.forEach ((watchdog, i) => {
-    watchdog.timerObj = setTimeout(() => {watchdogFired (watchdog)}, parseInt(watchdog.prms.time)*60*1000);
+  watchdogs.forEach((watchdog, i) => {
+    watchdog.timerObj = setTimeout(() => { watchdogFired(watchdog) }, parseInt(watchdog.prms.time) * 60 * 1000);
     watchdog.prms.lastMessageReceivedAt = 0;
     dumpMsg(` - watchdog #${i} for ${watchdog.for} armed. (${watchdog.prms.time} minutes.)`)
   })
@@ -80,13 +80,13 @@ app.post(config.sender.post.path, function (req, res) {
   // dumpMsg ('message received.'); //:\n'+decrypted);
   let data = JSON.parse(decrypted)
   if (data.interpret !== undefined) {
-    dumpMsg ('MUSIC-info received: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
+    dumpMsg('MUSIC-info received: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
   } else {
-    dumpMsg ('MESSAGE received: '+ data.value);
+    dumpMsg('MESSAGE received: ' + data.value);
   }
 
-  
-  watchdogs.forEach ( (wd) => {
+
+  watchdogs.forEach((wd) => {
     if (wd.for == data.table) {
       wd.timerObj.refresh()
       wd.prms.lastMessageReceivedAt = Date.now();
@@ -96,36 +96,36 @@ app.post(config.sender.post.path, function (req, res) {
 
 
   let dbstructure = null;
-  for (let i=0; i<config.dbstructure.length; i++) { 
-    if (config.dbstructure[i].tables.indexOf(data.table) > -1) 
+  for (let i = 0; i < config.dbstructure.length; i++) {
+    if (config.dbstructure[i].tables.indexOf(data.table) > -1)
       dbstructure = config.dbstructure[i];
   }
   if (dbstructure === null)
-    return dumpMsg ('ERROR: No DB-Table-Definition for topic "'+data.table+'"');
+    return dumpMsg('ERROR: No DB-Table-Definition for topic "' + data.table + '"');
 
   let assignmentList = '';
-  for (let i=0; i<dbstructure.fields.length; i++) {
+  for (let i = 0; i < dbstructure.fields.length; i++) {
     let field = dbstructure.fields[i].field;
-    let _data = data[field] !== undefined ? data[field].toString().replace (/\"/g, '\\"') : "*****";
+    let _data = data[field] !== undefined ? data[field].toString().replace(/\"/g, '\\"') : "*****";
     // assignmentList += '`'+field+'`="'+data[field].toString().replace (/\"/g, '\\"')+'", ';
     assignmentList += `\`${field}\` = "${_data}", `;
   }
-  for (let i=0; i<dbstructure.files.length; i++) {
+  for (let i = 0; i < dbstructure.files.length; i++) {
     const element = dbstructure.files[i];
     if (data[element.name] != '') {
       let _path = config.receiver.store + element.name;
-      let elData = new Buffer.from (data[element.name], 'binary');
-      dumpMsg (' - Checking Basepath: '+_path);
-      if (!fs.existsSync (_path))
-        fs.mkdirSync (_path, {recursive: true});
+      let elData = new Buffer.from(data[element.name], 'binary');
+      dumpMsg(' - Checking Basepath: ' + _path);
+      if (!fs.existsSync(_path))
+        fs.mkdirSync(_path, { recursive: true });
       let fn = _path + '/' + data.musicid + '.' + element.extension;
-      dumpMsg (' - Saving file for *'+element.name+'*: '+fn);
+      dumpMsg(' - Saving file for *' + element.name + '*: ' + fn);
       try {
         fs.writeFileSync(fn, elData);
         assignmentList += '`' + element.name + '`=1, '
-      } catch(e) {
-        dumpMsg (' - Error during writeFilySync(): \n' + e);
-        assignmentList += '`' + element.name +'`=0, ';
+      } catch (e) {
+        dumpMsg(' - Error during writeFilySync(): \n' + e);
+        assignmentList += '`' + element.name + '`=0, ';
       }
     } else {
       assignmentList += '`' + element.name + '`=0, '
@@ -138,7 +138,7 @@ app.post(config.sender.post.path, function (req, res) {
   connection.query(SQL, function (error, results, fields) {
     if (error) {
       if (error.code !== "ER_DUP_ENTRY") {
-        dumpMsg (' - Fehler beim Insert: '+error+'SQL:\n'+SQL+'\nDetails: '+JSON.stringify(error, null, 2));
+        dumpMsg(' - Fehler beim Insert: ' + error + 'SQL:\n' + SQL + '\nDetails: ' + JSON.stringify(error, null, 2));
         // console.error(error)
         cache.data.push(data)
         cache.save()
@@ -149,14 +149,14 @@ app.post(config.sender.post.path, function (req, res) {
     } else {
       dumpMsg(` - raw-data saved in table ${data.table}.`)
       if (data.interpret !== undefined) {
-        save2DB.savePlaylist (data, io);
+        save2DB.savePlaylist(data, io);
       } else {
         console.log()
       }
     }
 
   })
-  res.status(200).send('ok.') 
+  res.status(200).send('ok.')
 })
 
 // Warteschlange abarbeiten
@@ -165,17 +165,17 @@ setInterval(function () {
     const data = cache.data[index]
 
     let dbstructure = null;
-    for (let i=0; i<config.dbstructure.length; i++) {
+    for (let i = 0; i < config.dbstructure.length; i++) {
       if (config.dbstructure[i].tables.indexOf(data.table) > -1)
         dbstructure = config.dbstructure[i];
     }
     if (dbstructure === null)
-      return dumpMsg ('ERROR: No DB-Table-Definition for topic "'+data.table+'"');  
+      return dumpMsg('ERROR: No DB-Table-Definition for topic "' + data.table + '"');
 
     let assignmentList = ''
     for (let index = 0; index < dbstructure.fields.length; index++) {
       const field = dbstructure.fields[index].field
-      assignmentList += '`' + field + '`="' + data[field].toString().replace (/\"/g, '\\"') + '", '
+      assignmentList += '`' + field + '`="' + data[field].toString().replace(/\"/g, '\\"') + '", '
     }
     for (let index = 0; index < dbstructure.files.length; index++) { // Save Files to Disk
       const element = dbstructure.files[index]
@@ -183,17 +183,17 @@ setInterval(function () {
       if (content !== '') {
         // checken, ob das Zielverzeichnis existiert ... (braucht's eigentlich nicht, weil das ja bereits eine Ebene drüber erschlagen wurde)
         let _path = config.receiver.store + element.name;
-        dumpMsg (' + Checking Basepath: '+_path);
-        if (!fs.existsSync (_path))
-          fs.mkdirSync (_path, {recursive:true});
+        dumpMsg(' + Checking Basepath: ' + _path);
+        if (!fs.existsSync(_path))
+          fs.mkdirSync(_path, { recursive: true });
         let fn = _path + '/' + data.musicid + '.' + element.extension;
-        dumpMsg (' + Retry saving file for *'+element.name+'*: '+fn);
+        dumpMsg(' + Retry saving file for *' + element.name + '*: ' + fn);
         try {
           fs.writeFileSync(fn, content);
           assignmentList += '`' + element.name + '`=1, ';
         } catch (e) {
-          dumpMsg (' + Still error during writeFilySync(): \n' + e);
-          assignmentList += '`' + element.name +'`=0, ';
+          dumpMsg(' + Still error during writeFilySync(): \n' + e);
+          assignmentList += '`' + element.name + '`=0, ';
         }
       } else {
         assignmentList += '`' + element.name + '`=0, '
@@ -205,7 +205,7 @@ setInterval(function () {
     connection.query(SQL, function (error, results, fields) {
       if (error) {
         if (error.code != "ER_DUP_ENTRY") {
-          dumpMsg (' + Fehler beim erneuten Insert: '+error+'SQL:\n'+SQL);
+          dumpMsg(' + Fehler beim erneuten Insert: ' + error + 'SQL:\n' + SQL);
           console.error(error);
         } else {
           dumpMsg(' + ignored (duplicate entry).\n')
@@ -216,11 +216,11 @@ setInterval(function () {
         cache.data.shift(); // erstes Element aus dem Cache entfernen
         cache.save()
         if (data.interpret !== undefined) {
-          save2DB.savePlaylist (data, io);
+          save2DB.savePlaylist(data, io);
         } else {
           console.log()
         }
-      } 
+      }
     })
   }
 }, config.receiver.cache.retry)
@@ -230,8 +230,8 @@ setInterval(function () {
 * @param {object} options - Some Options
 * @param {object} err - An Error Object
 */
-function exitHandler (options, err) {
-  console.log('\nExiting...\n'+err);
+function exitHandler(options, err) {
+  console.log('\nExiting...\n' + err);
   save2DB.stop();
   connection.end();
   for (watchdog of watchdogs) {
@@ -250,60 +250,60 @@ process.on('uncaughtException', function (err) {
 // keep running
 process.stdin.resume()
 
-function createTables (callback) {
+function createTables(callback) {
   let tables = config.topics.length
   let count = tables
   let dbstructure = null;
 
-  for (let i=0; i<config.topics.length; i++) {
+  for (let i = 0; i < config.topics.length; i++) {
     // ggf. watchdog erzeugen
     if (config.topics[i].watchdog !== undefined) {
-      watchdogs.push({for: config.topics[i].table, prms: config.topics[i].watchdog})
+      watchdogs.push({ for: config.topics[i].table, prms: config.topics[i].watchdog })
     }
 
     // DB-Definition raussuchen
-    for (let j=0; j<config.dbstructure.length; j++) {
+    for (let j = 0; j < config.dbstructure.length; j++) {
       if (config.dbstructure[j].tables.indexOf(config.topics[i].table) > -1)
         dbstructure = config.dbstructure[j];
     }
     // DB-Felder bearbeiten
     let fields = '';
-    for (let j=0; j<dbstructure.fields.length; j++) {
+    for (let j = 0; j < dbstructure.fields.length; j++) {
       const field = dbstructure.fields[j];
-      fields += '`'+field.field+'` '+field.type+' NOT NULL, ';
+      fields += '`' + field.field + '` ' + field.type + ' NOT NULL, ';
     }
     if (dbstructure.files.length < 1)
-      fields = fields.substr (0, fields.length -2);
-    
+      fields = fields.substr(0, fields.length - 2);
+
     let filefields = '';
-    for (let j=0; j<dbstructure.files.length; j++) {
+    for (let j = 0; j < dbstructure.files.length; j++) {
       const field = dbstructure.files[j];
-      filefields += '`'+field.name+'` INT NOT NULL, ';
-    } 
-    if (filefields.length > 0)
-      filefields = filefields.substr (0, filefields.length - 2);
-    
-    let indices = '';
-    for (let j=0; j<dbstructure.indices.length; j++) {
-      indices += '`'+dbstructure.indices[j]+'`, '
+      filefields += '`' + field.name + '` INT NOT NULL, ';
     }
-    indices = ', INDEX ('+indices.substr(0, indices.length-2)+') ';
+    if (filefields.length > 0)
+      filefields = filefields.substr(0, filefields.length - 2);
+
+    let indices = '';
+    for (let j = 0; j < dbstructure.indices.length; j++) {
+      indices += '`' + dbstructure.indices[j] + '`, '
+    }
+    indices = ', INDEX (' + indices.substr(0, indices.length - 2) + ') ';
 
     let primary = '';
-    for (let j=0; j<dbstructure.primary.length; j++) {
-      primary += '`'+dbstructure.primary[j]+'`, ';
+    for (let j = 0; j < dbstructure.primary.length; j++) {
+      primary += '`' + dbstructure.primary[j] + '`, ';
     }
     if (primary.length > 0) {
-      primary = ', PRIMARY KEY ('+primary.substr(0, primary.length - 2)+')';
+      primary = ', PRIMARY KEY (' + primary.substr(0, primary.length - 2) + ')';
     }
 
     // Tabelle anlegen
-    let SQL = 'CREATE TABLE IF NOT EXISTS '+config.topics[i].table+' (' + fields + filefields + indices +  primary + ')';
-    SQL += ' ENGINE='+dbstructure.engine;
-    if (dbstructure.partioning !== undefined) 
+    let SQL = 'CREATE TABLE IF NOT EXISTS ' + config.topics[i].table + ' (' + fields + filefields + indices + primary + ')';
+    SQL += ' ENGINE=' + dbstructure.engine;
+    if (dbstructure.partioning !== undefined)
       SQL += ' PARTITION BY KEY (' + dbstructure.partioning.on + ') PARTITIONS ' + dbstructure.partioning.count + ''
-    
-    connection.query (SQL, (err, result) => {
+
+    connection.query(SQL, (err, result) => {
       if (err) {
         console.error(err);
         process.exit(6)
@@ -324,13 +324,13 @@ function createTables (callback) {
 const dumpMsg = (msg) => {
   if (config.receiver.debug) {
     let _t = new Date()
-    let _st = _t.getHours().toString().padStart(2,'0') + ':' + _t.getMinutes().toString().padStart(2,'0') + ':' + _t.getSeconds().toString().padStart(2,'0') + ',' + _t.getMilliseconds().toString().padStart(3,'0')
-    console.log (_st + '  ' + msg);
+    let _st = _t.getHours().toString().padStart(2, '0') + ':' + _t.getMinutes().toString().padStart(2, '0') + ':' + _t.getSeconds().toString().padStart(2, '0') + ',' + _t.getMilliseconds().toString().padStart(3, '0')
+    console.log(_st + '  ' + msg);
   }
 }
 
 const watchdogFired = (d) => {
-  console.log ('d.for: '+d.for+'  /  prms: '+JSON.stringify(d.prms, null, 2));
+  console.log('d.for: ' + d.for + '  /  prms: ' + JSON.stringify(d.prms, null, 2));
   let parts = {
     // y: 31536000,
     // m: 2592000,
@@ -338,39 +338,40 @@ const watchdogFired = (d) => {
     // d: 86400,
     h: 3600,
     min: 60,
-    sec: 1  
+    sec: 1
   };
 
   // let _d = new Date (d.prms.lastMessageReceivedAt);
   // let _dString = `${_d.getDate().toString().padStart(2,'0')}.${(_d.getMonth()+1).toString().padStart(2,'0')}.${_d.getFullYear().toString()}, ${_d.getHours().toString().padStart(2,'0')}:${_d.getMinutes().toString().padStart(2,'0')}:${_d.getSeconds().toString().padStart(2,'0')}`;
-  let _dt = new Date (new Date(d.prms.lastMessageReceivedAt).getTime() - new Date().getTime());
+  let _dt = new Date(new Date(d.prms.lastMessageReceivedAt).getTime() - new Date().getTime());
   let _dtObj = {};
-  Object.keys(parts).forEach( function (key) {
-    ret[key] = Math.floor(_dt/parts[key]);
-    _dt -= ret[key] * parts[key];
+  Object.keys(parts).forEach(function (key) {
+    _dtObj[key] = Math.floor(_dt / parts[key]);
+    _dt -= _dtObj[key] * parts[key];
   });
 
   for (adr of d.prms.adr) {
     try {
       let sendmail = spawn(
-        "mail", 
+        "mail",
         [
           "-s",
           // `RCV: Keine Titelaktualisierung für ${d.for} seit: ${d.prms.time} Minuten. (Zuletzt aktualisiert: ${_dString})`,
-          `Keine Titelaktualisierung seit ${_dtObj.h ? `${_dtObj.h.toString().padStart(2,'0')}h, `:''}${_dtObj.min ? `${_dtObj.min.toString().padStart(2,'0')}'`:''}${_dtObj.sec ? `${_dtObj.sec.toString().padStart(2,'0')}''`:''}`,
+          `Keine Titelaktualisierung seit ${_dtObj.h ? `${_dtObj.h.toString().padStart(2, '0')}h, ` : ''}${_dtObj.min ? `${_dtObj.min.toString().padStart(2, '0')}'` : ''}${_dtObj.sec ? `${_dtObj.sec.toString().padStart(2, '0')}''` : ''}`,
           adr
         ]
       );
-      sendmail.stdin.write (d.prms.msg);
+      sendmail.stdin.write(d.prms.msg);
       sendmail.stdin.end();
-      dumpMsg (`+++ Watchdog-Mail for topic ${d.for} sent to ${adr} +++`)
-    } catch(err) {
-      dumpMsg ('Error while sending watchdog-mail.')
+      dumpMsg(`+++ Watchdog-Mail for topic ${d.for} sent to ${adr} +++`)
+    }
+    catch (err) {
+      dumpMsg('Error while sending watchdog-mail.')
     }
   }   //  /for adr of d.prms.adr
 
   // re-arm watchdog
-  let _idx = watchdogs.findIndex( (el) => {return (el.for==d.for)})
+  let _idx = watchdogs.findIndex((el) => { return (el.for == d.for) })
   if (_idx > -1) {
     watchdogs[_idx].timerObj.refresh()
     // watchdogs[_idx].prms.lastMessageReceivedAt = Date.now();
