@@ -341,9 +341,7 @@ const watchdogFired = (d) => {
     sec: 1
   };
 
-  // let _d = new Date (d.prms.lastMessageReceivedAt);
-  // let _dString = `${_d.getDate().toString().padStart(2,'0')}.${(_d.getMonth()+1).toString().padStart(2,'0')}.${_d.getFullYear().toString()}, ${_d.getHours().toString().padStart(2,'0')}:${_d.getMinutes().toString().padStart(2,'0')}:${_d.getSeconds().toString().padStart(2,'0')}`;
-  let _dt = new Date(new Date(d.prms.lastMessageReceivedAt).getTime() - new Date().getTime());
+  let _dt = (new Date(d.prms.lastMessageReceivedAt).getTime() - new Date().getTime()) / 1000; // delta-time [secs]
   let _dtObj = {};
   Object.keys(parts).forEach(function (key) {
     _dtObj[key] = Math.floor(_dt / parts[key]);
