@@ -330,7 +330,7 @@ const dumpMsg = (msg) => {
 }
 
 const watchdogFired = (d) => {
-  console.log('d.for: ' + d.for + '  /  prms: ' + JSON.stringify(d.prms, null, 2));
+  // console.log('d.for: ' + d.for + '  /  prms: ' + JSON.stringify(d.prms, null, 2));
   let parts = {
     // y: 31536000,
     // m: 2592000,
@@ -341,11 +341,12 @@ const watchdogFired = (d) => {
     sec: 1
   };
 
-  let _dt = (new Date(d.prms.lastMessageReceivedAt).getTime() - new Date().getTime()) / 1000; // delta-time [secs]
+  // let _dt = (new Date(d.prms.lastMessageReceivedAt).getTime() - new Date().getTime()) / 1000; // delta-time [secs]
+  let _dt = (new Date().getTime() - new Date(d.prms.lastMessageReceivedAt).getTime()) / 1000; // delta-time [secs]
   let _dtObj = {};
   Object.keys(parts).forEach(function (key) {
-    _dtObj[key] = Math.floor(_dt / parts[key]);
-    _dt -= _dtObj[key] * parts[key];
+    _dtObj[key] = Math.floor(_dt / parts[key]).toString().padStart(2, '0');
+    _dt -= parseInt(_dtObj[key]) * parts[key];
   });
 
   for (adr of d.prms.adr) {
@@ -354,14 +355,15 @@ const watchdogFired = (d) => {
         "mail",
         [
           "-s",
+          `Keine Titelaktualisierung für ${d.for} seit: ${_dtObj.h}h, ${_dtObj.min}', ${_dtObj.sec}. (Zuletzt aktualisiert: ${new Date(d.prms.lastMessageReceivedAt)})`,
           // `RCV: Keine Titelaktualisierung für ${d.for} seit: ${d.prms.time} Minuten. (Zuletzt aktualisiert: ${_dString})`,
-          `Keine Titelaktualisierung seit ${_dtObj.h ? `${_dtObj.h.toString().padStart(2, '0')}h, ` : ''}${_dtObj.min ? `${_dtObj.min.toString().padStart(2, '0')}'` : ''}${_dtObj.sec ? `${_dtObj.sec.toString().padStart(2, '0')}''` : ''}`,
+          // `Keine Titelaktualisierung seit ${_dtObj.h ? `${_dtObj.h.toString().padStart(2, '0')}h, ` : ''}${_dtObj.min ? `${_dtObj.min.toString().padStart(2, '0')}'` : ''}${_dtObj.sec ? `${_dtObj.sec.toString().padStart(2, '0')}''` : ''}`,
           adr
         ]
       );
       sendmail.stdin.write(d.prms.msg);
       sendmail.stdin.end();
-      dumpMsg(`+++ Watchdog-Mail for topic ${d.for} sent to ${adr} +++`)
+      dumpMsg(`+++ Watchdog-Mail for topic ${d.for} sent to ${adr} (last: ${new Date(d.prms.lastMessageReceivedAt)}, delta: ${_dtObj.h}:${_dtObj.min}:${_dtObj.sec})+++`);
     }
     catch (err) {
       dumpMsg('Error while sending watchdog-mail.')
