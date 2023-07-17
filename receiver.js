@@ -80,7 +80,7 @@ createTables(function () {
       }
       watchdog.timerObj = setTimeout(() => { watchdogFired(watchdog) }, parseInt(watchdog.prms.time) * 60 * 1000);
       // watchdog.prms.lastMessageReceivedAt = Date.now();
-      dumpMsg(` - watchdog #${i} for ${watchdog.for} armed. (${watchdog.prms.time} minutes.) lastMessage:  ${new Date(watchdog.prms.lastMessageReceivedAt).toLocaleDateString()}`);
+      dumpMsg(` - watchdog #${i} for ${watchdog.for} armed. (${watchdog.prms.time} minutes.) lastMessage:  ${new Date(watchdog.prms.lastMessageReceivedAt).toLocaleString()}`);
     });
   })
   dumpMsg('startup: receiver running on port ' + config.receiver.port)
