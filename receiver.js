@@ -157,7 +157,7 @@ app.post(config.sender.post.path, function (req, res) {
 
   })
   res.status(200).send('ok.')
-})
+})    //  /app.post()
 
 // Warteschlange abarbeiten
 setInterval(function () {
@@ -256,11 +256,6 @@ function createTables(callback) {
   let dbstructure = null;
 
   for (let i = 0; i < config.topics.length; i++) {
-    // ggf. watchdog erzeugen
-    if (config.topics[i].watchdog !== undefined) {
-      watchdogs.push({ for: config.topics[i].table, prms: config.topics[i].watchdog })
-    }
-
     // DB-Definition raussuchen
     for (let j = 0; j < config.dbstructure.length; j++) {
       if (config.dbstructure[j].tables.indexOf(config.topics[i].table) > -1)
@@ -313,8 +308,27 @@ function createTables(callback) {
           callback()
         }
       }
-
     });
+
+    // ggf. watchdog erzeugen
+    if (config.topics[i].watchdog !== undefined) {
+      let SQL = `select start from playlists where station = "${config.topics[i].table}" order by start desc`;
+      connection.query(SQL, (err, result) => {
+        let wd = { for: config.topics[i].table, prms: config.topics[i].watchdog }
+        if (err) {
+          console.error(err);
+          process.exit(6);
+        }
+        else {
+          if (result.length) {
+            wd.prms.lastMessageReceivedAt = new Date(result[0].start).getTime();
+          } else {
+            wd.prms.lastMessageReceivedAt = Date.now();
+          }
+        }
+      });
+      watchdogs.push(wd);
+    }
 
   } // für alle topics
 
