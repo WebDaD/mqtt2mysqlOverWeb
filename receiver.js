@@ -65,7 +65,6 @@ createTables(function () {
   // setting up watchdog(s) ...
   watchdogs.forEach((watchdog, i) => {
     let SQL = `select start from playlists where station = "${watchdog.for}" order by start desc`;
-    dumpMsg(`getting last song update for ${i}/${watchdogs.length}: ${SQL}`);
     connection.query(SQL, (err, result) => {
       if (err) {
         console.error(err);
@@ -84,7 +83,7 @@ createTables(function () {
     });
   })
   dumpMsg('startup: receiver running on port ' + config.receiver.port)
-})
+});
 
 
 app.post(config.sender.post.path, function (req, res) {
@@ -150,6 +149,7 @@ app.post(config.sender.post.path, function (req, res) {
   assignmentList = assignmentList.substr(0, assignmentList.length - 2)
   // let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
   let SQL = 'INSERT INTO ' + data.table + ' SET ' + assignmentList;
+  dumpMsg(`about to store to db: ${SQL}`);
   connection.query(SQL, function (error, results, fields) {
     if (error) {
       if (error.code !== "ER_DUP_ENTRY") {
