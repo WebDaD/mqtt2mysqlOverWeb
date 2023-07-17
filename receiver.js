@@ -64,9 +64,24 @@ createTables(function () {
   var _server = server.listen(config.receiver.port)
   // setting up watchdog(s) ...
   watchdogs.forEach((watchdog, i) => {
-    watchdog.timerObj = setTimeout(() => { watchdogFired(watchdog) }, parseInt(watchdog.prms.time) * 60 * 1000);
-    watchdog.prms.lastMessageReceivedAt = 0;
-    dumpMsg(` - watchdog #${i} for ${watchdog.for} armed. (${watchdog.prms.time} minutes.)`)
+    let SQL = `select start from playlists where station = "${watchdog.for}" order by start desc`;
+    dumpMsg(`getting last song update for ${i}/${watchdogs.length}: ${SQL}`);
+    connection.query(SQL, (err, result) => {
+      if (err) {
+        console.error(err);
+        process.exit(6);
+      }
+      else {
+        if (result.length) {
+          watchdog.prms.lastMessageReceivedAt = new Date(result[0].start).getTime();
+        } else {
+          watchdog.prms.lastMessageReceivedAt = Date.now();
+        }
+      }
+      watchdog.timerObj = setTimeout(() => { watchdogFired(watchdog) }, parseInt(watchdog.prms.time) * 60 * 1000);
+      // watchdog.prms.lastMessageReceivedAt = Date.now();
+      dumpMsg(` - watchdog #${i} for ${watchdog.for} armed. (${watchdog.prms.time} minutes.)`)
+    });
   })
   dumpMsg('startup: receiver running on port ' + config.receiver.port)
 })
@@ -256,6 +271,13 @@ function createTables(callback) {
   let dbstructure = null;
 
   for (let i = 0; i < config.topics.length; i++) {
+    // ggf. watchdog erzeugen
+    if (config.topics[i].watchdog !== undefined) {
+      let wd = { for: config.topics[i].table, prms: config.topics[i].watchdog }
+      watchdogs.push(wd);
+    }
+
+
     // DB-Definition raussuchen
     for (let j = 0; j < config.dbstructure.length; j++) {
       if (config.dbstructure[j].tables.indexOf(config.topics[i].table) > -1)
@@ -309,27 +331,6 @@ function createTables(callback) {
         }
       }
     });
-
-    // ggf. watchdog erzeugen
-    if (config.topics[i].watchdog !== undefined) {
-      let SQL = `select start from playlists where station = "${config.topics[i].table}" order by start desc`;
-      connection.query(SQL, (err, result) => {
-        let wd = { for: config.topics[i].table, prms: config.topics[i].watchdog }
-        if (err) {
-          console.error(err);
-          process.exit(6);
-        }
-        else {
-          if (result.length) {
-            wd.prms.lastMessageReceivedAt = new Date(result[0].start).getTime();
-          } else {
-            wd.prms.lastMessageReceivedAt = Date.now();
-          }
-        }
-      });
-      watchdogs.push(wd);
-      dumpMsg(`watchdog for ${wd.prms.for} created - lastMessageRecevedAt: ${new Date(wd.prms.lastMessageReceivedAt)}`);
-    }
 
   } // für alle topics
 
