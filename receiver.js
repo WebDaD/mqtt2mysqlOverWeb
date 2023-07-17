@@ -127,6 +127,7 @@ app.post(config.sender.post.path, function (req, res) {
   for (let i = 0; i < dbstructure.files.length; i++) {
     const element = dbstructure.files[i];
     if (data[element.name] != '') {
+      dumpMsg(`data[${element.name}] = ${data[element.name]}`);
       let _path = config.receiver.store + element.name;
       let elData = new Buffer.from(data[element.name], 'binary');
       dumpMsg(' - Checking Basepath: ' + _path);
