@@ -127,6 +127,7 @@ app.post(config.sender.post.path, function (req, res) {
   for (let i = 0; i < dbstructure.files.length; i++) {
     const element = dbstructure.files[i];
     if (typeof data[element.name] !== "undefined" && data[element.name] !== '' && data[element.name] !== "undefined") {
+      // -------------------------------------------------------------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 17,7,23: wegen geänderter Firewall-Regel werden keine Images mehr mit übertragen
       let _path = config.receiver.store + element.name;
       let elData = new Buffer.from(data[element.name], 'binary');
       dumpMsg(' - Checking Basepath: ' + _path);
@@ -149,7 +150,6 @@ app.post(config.sender.post.path, function (req, res) {
   assignmentList = assignmentList.substr(0, assignmentList.length - 2)
   // let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
   let SQL = 'INSERT INTO ' + data.table + ' SET ' + assignmentList;
-  dumpMsg(`about to store to db: ${SQL}`);
   connection.query(SQL, function (error, results, fields) {
     if (error) {
       if (error.code !== "ER_DUP_ENTRY") {
