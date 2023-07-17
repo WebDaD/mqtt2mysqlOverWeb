@@ -328,6 +328,7 @@ function createTables(callback) {
         }
       });
       watchdogs.push(wd);
+      dumpMsg(`watchdog for ${wd.prms.for} created - lastMessageRecevedAt: ${new Date(wd.prms.lastMessageReceivedAt)}`);
     }
 
   } // für alle topics
