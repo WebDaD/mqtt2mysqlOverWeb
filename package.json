@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/WebDaD/mqtt2mysqlOverWeb#readme",
   "dependencies": {
-    "express": "^4.16.4",
+    "express": "^4.19.2",
     "jsonfile": "^5.0.0",
     "mqtt": "^2.18.8",
     "mysql": "^2.16.0",
