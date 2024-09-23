@@ -214,6 +214,16 @@ module.exports.savePlaylist = (data, socket = undefined) => {
 
   _getArtistID(data).then((id) => {
     data['artistID'] = id;
+    // handle titles without musicId i.e. generate (unique) musicId an store title in db
+    if (typeof data['musicId'] !== 'undefined' && data['musicId'] !== '') {
+      let chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVEXYZ-_0123456789';
+      data['musicId'] = 'TMP_';
+      for (let i = 0; i <= 20; i++) {    // musicId ist ein cahr[25]-Feld in der DB ...
+        // Berechnung des zufälligen Zeigers beruht auf https://wiki.selfhtml.org/wiki/JavaScript/Tutorials/Zufallszahlen
+        data['musicId'] += chars[Math.floor(Math.random() * (chars.length - 1 - 0 + 1)) + 0];
+      }
+      dumpMsg(` - new musicId for ${data.interpret} / "${data.title}" created: ${data.musicId}`);
+    }
     _getTitleID(data).then((id) => {
       data['titleID'] = id;
       // Playlist updaten ...
