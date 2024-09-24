@@ -57,7 +57,14 @@ var _getArtistID = (data) => {
 // ---------------------
 var _getTitleID = (data) => {
   //  dumpMsg ("_getTitleID () für "+data.title);
-  let SQL = 'select musicID from `' + dbConf.database + '`.`titles` where musicID="' + data.musicid + '"';
+  // let SQL = 'select musicID from `' + dbConf.database + '`.`titles` where musicID="' + data.musicid + '"';
+  // wenn vorhanden: Suche nach der musicId, sonst nach der Kombi aus Titel und Interpret
+  let SQL = `select musicID from ${dbConf.database}.\`titles\` where `;
+  SQL += typeof data.musicid !== "undefined" && data.musicid !== "" ?
+    `musicID="${data.musicid}"`
+    :
+    `title="${data.title}" and artistID=${data.artistID}`;
+
   return new Promise((resolve, reject) => {
     hDB.query(SQL, (err, result, fields) => {
       if (err) {
@@ -65,13 +72,25 @@ var _getTitleID = (data) => {
         reject(err);
       }
       else {
-        if (result.length > 0) {
+        if (result.length > 0) {  // d.h. entweder war die Suche nach der musicID erfolgreich, oder die Kombi aus Interpret und Titel existiert -> damit dann aber auch die musicID
           dumpMsg(' - getTitleID(): "' + data.title + '" by ' + data.interpret + '  -->  ' + result[0].musicID);
           resolve(result[0].musicID);
         }
         else {
-          //          console.log ('Vorm Anlegen eines neuen Titels:\ngesucht: '+SQL+'\nresult:\n'+JSON.stringify(result, null, 2)+'\n---\n');
-          SQL = 'insert into `' + dbConf.database + '`.`titles` (musicID, artistID, title, length, coverID) values ("' + data.musicid + '", ' + data.artistID + ', "' + data.title + '", "' + data.duration + '", ' + (data.cover !== "" ? 1 : 0) + ')';
+          // entweder gibt's die musicID noch nicht oder die Kombi aus Titel und Interpret noch nicht.
+          // in dem Fall ist data.musicid ein leerer String ("") - dann wird eine musicID generiert und der Titel mit dieser gespeichert.
+          // Erzeugung der zufälligen musicID basiert auf https://net-developers.de/2010/01/13/eindeutige-und-zufallige-hashes-mit-php-generieren-oop-klasse/
+          if (typeof data['musicid'] !== 'undefined' && data['musicid'] !== '') {
+            let chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVEXYZ-_0123456789';
+            data['musicid'] = 'TMP_';
+            for (let i = 0; i <= 20; i++) {    // musicId ist ein cahr[25]-Feld in der DB ...
+              // Berechnung des zufälligen Zeigers beruht auf https://wiki.selfhtml.org/wiki/JavaScript/Tutorials/Zufallszahlen
+              data['musicid'] += chars[Math.floor(Math.random() * (chars.length - 1 - 0 + 1)) + 0];
+            }
+            dumpMsg(` - getTitleID(): new musicId for ${data.interpret} / "${data.title}" created: ${data.musicid}`);
+          }
+          // SQL = 'insert into `' + dbConf.database + '`.`titles` (musicID, artistID, title, length, coverID) values ("' + data.musicid + '", ' + data.artistID + ', "' + data.title + '", "' + data.duration + '", ' + (data.cover !== "" ? 1 : 0) + ')';
+          SQL = `insert into \`${dbConf.database}\`.\`titles\` (musicID, artistID, title, length, coverID) values ( "${data.musicid}", ${data.artistID}, "${data.title}", "${data.duration}", ${(data.cover !== "" ? '1' : '0')} )`;
           hDB.query(SQL, (err, result, fields) => {
             dumpMsg('title: ' + data.title + ' not found.'); //\nresult:'+JSON.stringify(result, null, 2));
             if (err && err.code !== "ER_DUP_ENTRY") {
@@ -94,7 +113,7 @@ var _getTitleID = (data) => {
 // ---------------------
 var _getPlaylistID = (data) => {
   //  dumpMsg ("_getPlaylistID () für "+data.timestamp+' in '+data.table);
-  let SQL = 'select start, station from `' + dbConf.database + '`.`playlists` where start="' + data.timestamp + '" and station="' + data.table + '"';
+  let SQL = `select start, station from \`${dbConf.database}\`.\`playlists\` where start="${data.timestamp}" and station="${data.table}"`;
   return new Promise((resolve, reject) => {
     hDB.query(SQL, (err, result, fields) => {
       if (err) {
@@ -107,7 +126,7 @@ var _getPlaylistID = (data) => {
           resolve(result[0].start + ' / ' + result[0].station);
         }
         else {
-          SQL = 'insert into `' + dbConf.database + '`.`playlists` (musicID, start, duration, class, station) values ("' + data.musicid + '", "' + data.timestamp + '", "' + data.duration + '", "' + data.class + '", "' + data.table + '")';
+          SQL = `insert into \`${dbConf.database}\`.\`playlists\` (musicID, start, duration, class, station) values ("${data.musicid}", "${data.timestamp}", "${data.duration}", "${data.class}", "${data.table}")`;
           hDB.query(SQL, (err, result, fields) => {
             //console.log ('Playlist-Eintrag:\n'+SQL);
             if (err) {
@@ -214,16 +233,6 @@ module.exports.savePlaylist = (data, socket = undefined) => {
 
   _getArtistID(data).then((id) => {
     data['artistID'] = id;
-    // handle titles without musicId i.e. generate (unique) musicId an store title in db
-    if (typeof data['musicId'] !== 'undefined' && data['musicId'] !== '') {
-      let chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVEXYZ-_0123456789';
-      data['musicId'] = 'TMP_';
-      for (let i = 0; i <= 20; i++) {    // musicId ist ein cahr[25]-Feld in der DB ...
-        // Berechnung des zufälligen Zeigers beruht auf https://wiki.selfhtml.org/wiki/JavaScript/Tutorials/Zufallszahlen
-        data['musicId'] += chars[Math.floor(Math.random() * (chars.length - 1 - 0 + 1)) + 0];
-      }
-      dumpMsg(` - new musicId for ${data.interpret} / "${data.title}" created: ${data.musicId}`);
-    }
     _getTitleID(data).then((id) => {
       data['titleID'] = id;
       // Playlist updaten ...
