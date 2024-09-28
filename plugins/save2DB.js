@@ -80,7 +80,7 @@ var _getTitleID = (data) => {
           // entweder gibt's die musicID noch nicht oder die Kombi aus Titel und Interpret noch nicht.
           // in dem Fall ist data.musicid ein leerer String ("") - dann wird eine musicID generiert und der Titel mit dieser gespeichert.
           // Erzeugung der zufälligen musicID basiert auf https://net-developers.de/2010/01/13/eindeutige-und-zufallige-hashes-mit-php-generieren-oop-klasse/
-          if (typeof data['musicid'] !== 'undefined' && data['musicid'] !== '') {
+          if (typeof data['musicid'] !== 'undefined' && data['musicid'] === '') {
             let chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVEXYZ-_0123456789';
             data['musicid'] = 'TMP_';
             for (let i = 0; i <= 20; i++) {    // musicId ist ein cahr[25]-Feld in der DB ...
