@@ -135,7 +135,7 @@ var _getPlaylistID = (data) => {
             }
             else {
               let deltaTime = (Date.now() - Date.parse(data.timestamp)) / 1000;
-              dumpMsg(` - Playlist-Entry for ${data.table} at ${data.timestamp} created. ("${data.title}" / ${data.interpret} - ${data.musicid}) Delay: ${deltaTime} secs.`);
+              dumpMsg(` - new playlist-entry for ${data.table} at ${data.timestamp} created: "${data.title}" / ${data.interpret} (${data.musicid}) Delay: ${deltaTime} secs.`);
               if ((config.receiver["save2DB.js"].alarms.emailAddress.length > 0) && (deltaTime > parseInt(config.receiver["save2DB.js"].alarms.timeThreshold))) {
                 dumpMsg(` -- Sending alarm-mail to ${config.receiver["save2DB.js"].alarms.emailAddress}`)
                 try {

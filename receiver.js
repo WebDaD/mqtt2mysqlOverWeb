@@ -94,7 +94,7 @@ app.post(config.sender.post.path, function (req, res) {
   // dumpMsg('message received:\n' + decrypted);
   let data = JSON.parse(decrypted)
   if (data.interpret !== undefined) {
-    dumpMsg('MUSIC-info received: ' + data.interpret + '  |  ' + data.title); //+'\n'+JSON.stringify(data, null,2));
+    dumpMsg(`MUSIC-info received: "${data.title}" / ${data.interpret} (${data.musicid})`); //+'\n'+JSON.stringify(data, null,2));
   } else {
     dumpMsg('MESSAGE received: ' + data.value);
   }
