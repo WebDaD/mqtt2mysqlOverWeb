@@ -122,7 +122,7 @@ var _getPlaylistID = (data) => {
       }
       else {
         if (result.length > 0) {
-          // dumpMsg (' - Playlist-Entry for '+data.timestamp+' on station: '+data.table+' found.');
+          dumpMsg(` - _getPlaylistID(): Playlist-Entry for ${data.timestamp} on station: ${data.table}  found. ("${data.title}" / ${data.interpret} -> ${data.musicid})`);
           resolve(result[0].start + ' / ' + result[0].station);
         }
         else {
@@ -135,7 +135,7 @@ var _getPlaylistID = (data) => {
             }
             else {
               let deltaTime = (Date.now() - Date.parse(data.timestamp)) / 1000;
-              dumpMsg(` - Playlist-Entry for ${data.table} at ${data.timestamp} created. Delay: ${deltaTime} secs.`);
+              dumpMsg(` - Playlist-Entry for ${data.table} at ${data.timestamp} created. ("") Delay: ${deltaTime} secs.`);
               if ((config.receiver["save2DB.js"].alarms.emailAddress.length > 0) && (deltaTime > parseInt(config.receiver["save2DB.js"].alarms.timeThreshold))) {
                 dumpMsg(` -- Sending alarm-mail to ${config.receiver["save2DB.js"].alarms.emailAddress}`)
                 try {
@@ -234,7 +234,7 @@ module.exports.savePlaylist = (data, socket = undefined) => {
   _getArtistID(data).then((id) => {
     data['artistID'] = id;
     _getTitleID(data).then((id) => {
-      data['titleID'] = id;
+      data['musicid'] = id;
       // Playlist updaten ...
       _getPlaylistID(data).then((id) => {
         dumpMsg(' - _getPlaylist(): ' + id + (socket === undefined || (socket !== undefined && id !== true) ? '\n *****' : ''))
