@@ -133,6 +133,7 @@ app.post(config.sender.post.path, function (req, res) {
   }
   for (let i = 0; i < dbstructure.files.length; i++) {
     const element = dbstructure.files[i];
+    columns += `\`${element.name}\`, `;
     if (typeof data[element.name] !== "undefined" && data[element.name] !== '' && data[element.name] !== "undefined") {
       // -------------------------------------------------------------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 17,7,23: wegen geänderter Firewall-Regel werden keine Images mehr mit übertragen
       let _path = config.receiver.store + element.name;
@@ -142,7 +143,6 @@ app.post(config.sender.post.path, function (req, res) {
         fs.mkdirSync(_path, { recursive: true });
       let fn = _path + '/' + data.musicid + '.' + element.extension;
       dumpMsg(' - Saving file for *' + element.name + '*: ' + fn);
-      columns += `\`${element.name}\`, `;
       try {
         fs.writeFileSync(fn, elData);
         assignmentList += '`' + element.name + '`=1, ';
