@@ -213,6 +213,7 @@ setInterval(function () {
     for (let index = 0; index < dbstructure.files.length; index++) { // Save Files to Disk
       const element = dbstructure.files[index]
       let content = data[element.name]
+      columns += `\`${element.name}\`, `;
       if (content !== '') {
         // checken, ob das Zielverzeichnis existiert ... (braucht's eigentlich nicht, weil das ja bereits eine Ebene drüber erschlagen wurde)
         let _path = config.receiver.store + element.name;
@@ -221,7 +222,6 @@ setInterval(function () {
           fs.mkdirSync(_path, { recursive: true });
         let fn = _path + '/' + data.musicid + '.' + element.extension;
         dumpMsg(' + Retry saving file for *' + element.name + '*: ' + fn);
-        columns += `\`${element.name}\`, `;
         try {
           fs.writeFileSync(fn, content);
           assignmentList += '`' + element.name + '`=1, ';
