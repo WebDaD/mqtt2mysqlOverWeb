@@ -118,9 +118,16 @@ app.post(config.sender.post.path, function (req, res) {
     return dumpMsg('ERROR: No DB-Table-Definition for topic "' + data.table + '"');
 
   let assignmentList = '';
+  let values = '';
+  let columns = '';
   for (let i = 0; i < dbstructure.fields.length; i++) {
     let field = dbstructure.fields[i].field;
-    let _data = data[field] !== undefined ? data[field].toString().replace(/\"/g, '\\"') : "*****";
+    let _data = data[field] !== undefined 
+      ? data[field].toString().replace(/\"/g, '\\"') 
+      : "*****";
+    columns += `\`${field}\`, `;
+    values += `"${_data}", `
+
     // assignmentList += '`'+field+'`="'+data[field].toString().replace (/\"/g, '\\"')+'", ';
     assignmentList += `\`${field}\` = "${_data}", `;
   }
@@ -135,21 +142,27 @@ app.post(config.sender.post.path, function (req, res) {
         fs.mkdirSync(_path, { recursive: true });
       let fn = _path + '/' + data.musicid + '.' + element.extension;
       dumpMsg(' - Saving file for *' + element.name + '*: ' + fn);
+      columns += `\`${element.name}\`, `;
       try {
         fs.writeFileSync(fn, elData);
-        assignmentList += '`' + element.name + '`=1, '
+        assignmentList += '`' + element.name + '`=1, ';
+        values += `1, `;
       } catch (e) {
         dumpMsg(' - Error during writeFilySync(): \n' + e);
         assignmentList += '`' + element.name + '`=0, ';
+        values += `0, `;
       }
     } else {
       assignmentList += '`' + element.name + '`=0, '
+      values += `0, `;
     }
   }
 
-  assignmentList = assignmentList.substr(0, assignmentList.length - 2)
+  // assignmentList = assignmentList.substr(0, assignmentList.length - 2);
+  assignmentList = assignmentList.substr(0, assignmentList.length - 2);
   // let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
-  let SQL = 'INSERT INTO ' + data.table + ' SET ' + assignmentList;
+  // let SQL = 'INSERT INTO ' + data.table + ' SET ' + assignmentList;
+  let SQL = `INSERT INTO ${data.table} (${columns.substring(0, columns.length-2)}) VALUES (${values.substring(0, values.length-2)})`;
   connection.query(SQL, function (error, results, fields) {
     if (error) {
       if (error.code !== "ER_DUP_ENTRY") {
@@ -187,10 +200,15 @@ setInterval(function () {
     if (dbstructure === null)
       return dumpMsg('ERROR: No DB-Table-Definition for topic "' + data.table + '"');
 
-    let assignmentList = ''
+    let assignmentList = '';
+    let columns = '';
+    let values = '';
     for (let index = 0; index < dbstructure.fields.length; index++) {
-      const field = dbstructure.fields[index].field
-      assignmentList += '`' + field + '`="' + data[field].toString().replace(/\"/g, '\\"') + '", '
+      const field = dbstructure.fields[index].field;
+      const value = data[field].toString().replace(/\"/g, '\\"');
+      assignmentList += '`' + field + '`="' + value + '", '
+      columns += `\`${field}\`, `;
+      values += `"${value}", `
     }
     for (let index = 0; index < dbstructure.files.length; index++) { // Save Files to Disk
       const element = dbstructure.files[index]
@@ -203,20 +221,25 @@ setInterval(function () {
           fs.mkdirSync(_path, { recursive: true });
         let fn = _path + '/' + data.musicid + '.' + element.extension;
         dumpMsg(' + Retry saving file for *' + element.name + '*: ' + fn);
+        columns += `\`${element.name}\`, `;
         try {
           fs.writeFileSync(fn, content);
           assignmentList += '`' + element.name + '`=1, ';
+          values += '1, ';
         } catch (e) {
           dumpMsg(' + Still error during writeFilySync(): \n' + e);
           assignmentList += '`' + element.name + '`=0, ';
+          values += '0, ';
         }
       } else {
         assignmentList += '`' + element.name + '`=0, '
+        values += '0, ';
       }
     }
-    assignmentList = assignmentList.substr(0, assignmentList.length - 2)
+    assignmentList = assignmentList.substr(0, assignmentList.length - 2);
     // let SQL = 'INSERT ' + (config.receiver.ignoreInsertError ? 'IGNORE' : '') + ' INTO ' + data.table + ' SET ' + assignmentList;
-    let SQL = 'INSERT INTO ' + data.table + ' SET ' + assignmentList;
+    // let SQL = 'INSERT INTO ' + data.table + ' SET ' + assignmentList;
+    let SQL = `INSERT INTO ${data.table} (${columns.substring(0, columns.length-2)}) VALUES (${values.substring(0, values.length-2)})`;
     connection.query(SQL, function (error, results, fields) {
       if (error) {
         if (error.code != "ER_DUP_ENTRY") {
